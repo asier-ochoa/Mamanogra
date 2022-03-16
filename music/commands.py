@@ -16,6 +16,16 @@ class Music_cog(commands.Cog):
         ctrl = find_controller(ctx.guild)
         await ctrl.play_url(url, ctx.author)
 
+    @commands.command()
+    async def pause(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        await ctrl.pause()
+
+    @commands.command()
+    async def resume(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        await ctrl.resume()
+
 # ====main function below this line====
 
 # -----Pre Setup------

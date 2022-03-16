@@ -15,7 +15,9 @@ class Player:
     - (<name>,<link>,<duration>)
     """
 
-    is_playing = False
+    # These should only be changed inside the class,dont want to make them private XDDDDDDDD
+    is_playing = False # Represents if bot is currently connected and has a song in buffer (includes being paused)
+    is_paused = False # For this to be true, is playin must also be true.
     song_end:datetime = None
 
     #yt_dlp client reference
@@ -81,13 +83,16 @@ class Player:
 
         url = self.queue[0][1]
         self.connected_channel.play(FFmpegPCMAudio(url))
+        self.is_playing = True
 
     def pause(self):
         self.connected_channel.pause()
+        self.is_paused = True
         pass
 
     def resume_playing(self):
         self.connected_channel.resume()
+        self.is_paused = False
         pass
 
     def register_song(self, song):
@@ -95,7 +100,6 @@ class Player:
         Pushes song into queue list.
         """
         self.queue.append(song)
-
 
     def skip_playing(self):
         """

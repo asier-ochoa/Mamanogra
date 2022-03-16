@@ -75,5 +75,18 @@ class Controller:
     async def play_url(self, url, caller:Member):
         song:tuple(str, str, int) = self.music_player.extract_info(url)
         self.music_player.register_song(song)
-        await self.music_player.connect_channel(caller.voice.channel)
-        self.music_player.start_playing()
+
+        # Avoid connecting if already connected
+        if self.music_player.connected_channel == None:
+            await self.music_player.connect_channel(caller.voice.channel)
+
+        if not self.music_player.is_playing:
+            self.music_player.start_playing()
+
+    async def pause(self):
+        if not self.music_player.is_paused and self.music_player.is_playing:
+            self.music_player.pause()
+
+    async def resume(self):
+        if self.music_player.is_paused:
+            self.music_player.resume_playing()
