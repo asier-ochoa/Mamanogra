@@ -13,6 +13,9 @@ class Controller:
 
     config = {}
     music_player:Player = None
+
+    # Used to check if running a function is async safe. Set to false to disallow other functions to run
+    # async_safe = True
     
     def __init__(self, guild:Guild=None):
         if guild is None:
@@ -23,7 +26,7 @@ class Controller:
         guild_name = guild.name
         config_path = globals.SERVER_FOLDER + '/' + guild.name + '/' + 'music.json'
 
-        self.music_player = Player() #instantiates the music client
+        self.music_player = Player(self.after_song) #instantiates the music client
 
         #default config template
         configData = {
@@ -72,7 +75,15 @@ class Controller:
 
         return False
 
+    def after_song(self):
+        """
+        Gets called after a song ends playing
+        """
+        if len(self.music_player.queue) > 0:
+            self.music_player.start_playing()
+
     async def play_url(self, url, caller:Member):
+
         song:tuple(str, str, int) = self.music_player.extract_info(url)
         self.music_player.register_song(song)
 
@@ -82,6 +93,7 @@ class Controller:
 
         if not self.music_player.is_playing:
             self.music_player.start_playing()
+        
 
     async def pause(self):
         if not self.music_player.is_paused and self.music_player.is_playing:

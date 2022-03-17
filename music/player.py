@@ -1,6 +1,8 @@
 from discord import VoiceChannel, VoiceClient, FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 from datetime import datetime
+from threading import Lock
+import time
 
 class Player:
     """
@@ -15,6 +17,9 @@ class Player:
     - (<name>,<link>,<duration>)
     """
 
+    # This is a reference to a callback function in controller, called after a song ends
+    callback = None
+
     # These should only be changed inside the class,dont want to make them private XDDDDDDDD
     is_playing = False # Represents if bot is currently connected and has a song in buffer (includes being paused)
     is_paused = False # For this to be true, is playin must also be true.
@@ -22,8 +27,8 @@ class Player:
 
     #yt_dlp client reference
     yt_client:YoutubeDL = None
-    
-    def __init__(self, resumeQueue = None):
+
+    def __init__(self, callback, resumeQueue = None):
         """
         Passing a list to the bot with songs will instantiate
         a given song queue.
@@ -31,6 +36,8 @@ class Player:
         self.yt_client = YoutubeDL()
         if resumeQueue is not None:
             self.queue = resumeQueue
+
+        self.callback = callback
     
     async def connect_channel(self, caller_channel:VoiceChannel):
         """
@@ -82,8 +89,20 @@ class Player:
             raise Exception("No song currently on queue.")
 
         url = self.queue[0][1]
-        self.connected_channel.play(FFmpegPCMAudio(url))
+        self.connected_channel.play(FFmpegPCMAudio(url), after=lambda error: self.end_playing_song(error))
         self.is_playing = True
+
+    def end_playing_song(self, error):
+        """
+        Callback function for when a song ends playing.
+        """
+        # lock = Lock() # Could use these locks to guarantee safety
+        # lock.acquire()
+        self.queue.pop(0)
+        self.is_playing = False
+        # lock.release()
+
+        self.callback()
 
     def pause(self):
         self.connected_channel.pause()

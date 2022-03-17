@@ -1,9 +1,13 @@
 from discord import Message, TextChannel
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
 
 from datetime import datetime
+import asyncio
+
+# list containing lambdas refering to functions
+cmd_queue = []
 
 # ====Commands here==== 
 class Music_cog(commands.Cog):
@@ -13,8 +17,9 @@ class Music_cog(commands.Cog):
 
     @commands.command()
     async def play(self, ctx:Context, url:str):
+        global cmd_queue
         ctrl = find_controller(ctx.guild)
-        await ctrl.play_url(url, ctx.author)
+        cmd_queue.append((ctrl.play_url, (url, ctx.author)))
 
     @commands.command()
     async def pause(self, ctx:Context):
@@ -59,3 +64,14 @@ async def on_ready():
 async def setup_post():
     async for guild in bot.fetch_guilds():
         music_ctrl_list.append((Controller(guild=guild), guild))
+    
+    asyncio.get_running_loop().create_task(cmd_loop())
+
+async def cmd_loop():
+    global cmd_queue
+    while True:
+        await asyncio.sleep(1)
+        if len(cmd_queue) > 0:
+            params = cmd_queue[0][1]
+            await cmd_queue[0][0](*params)
+            cmd_queue.pop(0)
