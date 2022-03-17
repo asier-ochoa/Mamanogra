@@ -6,9 +6,6 @@ from music.controller import Controller
 from datetime import datetime
 import asyncio
 
-# list containing lambdas refering to functions
-cmd_queue = []
-
 # ====Commands here==== 
 class Music_cog(commands.Cog):
     @commands.command()
@@ -17,19 +14,18 @@ class Music_cog(commands.Cog):
 
     @commands.command()
     async def play(self, ctx:Context, url:str):
-        global cmd_queue
-        ctrl = find_controller(ctx.guild)
-        cmd_queue.append((ctrl.play_url, (url, ctx.author)))
+        ctrl = await find_controller(ctx.guild)
+        ctrl.cmd_queue.append((ctrl.play_url, (url, ctx.author)))
 
     @commands.command()
     async def pause(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        await ctrl.pause()
+        ctrl.cmd_queue.append((ctrl.pause, ()))
 
     @commands.command()
     async def resume(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        await ctrl.resume()
+        ctrl.cmd_queue.append((ctrl.resume, ()))
 
 # ====main function below this line====
 
@@ -47,7 +43,7 @@ help = """```
 +? <-> Query the queue
 ```"""
 
-def find_controller(guild):
+async def find_controller(guild) -> Controller:
     """
     Iterates through list of touples and returns controller to corresponding guild
     """
@@ -62,16 +58,20 @@ async def on_ready():
     print(bot.user.name + ' has succesfully logged in!')
 
 async def setup_post():
+    global bot
     async for guild in bot.fetch_guilds():
-        music_ctrl_list.append((Controller(guild=guild), guild))
-    
-    asyncio.get_running_loop().create_task(cmd_loop())
+        ctrl = Controller(guild=guild)
+        music_ctrl_list.append((ctrl, guild))
+        bot.loop.create_task(cmd_loop(ctrl))
 
-async def cmd_loop():
-    global cmd_queue
+lock = asyncio.Lock()
+
+async def cmd_loop(ctrl:Controller):
     while True:
+        global lock
         await asyncio.sleep(1)
-        if len(cmd_queue) > 0:
-            params = cmd_queue[0][1]
-            await cmd_queue[0][0](*params)
-            cmd_queue.pop(0)
+        async with lock:
+            if len(ctrl.cmd_queue) > 0:
+                params = ctrl.cmd_queue[0][1]
+                await ctrl.cmd_queue[0][0](*params)
+                ctrl.cmd_queue.pop(0)

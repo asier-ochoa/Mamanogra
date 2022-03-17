@@ -11,7 +11,7 @@ class Player:
     voice_client:VoiceClient = None
     connected_channel:VoiceChannel = None
 
-    queue:list = []
+    queue:list = None
     """
     The music queue is represented with a list containing tuples:
     - (<name>,<link>,<duration>)
@@ -38,6 +38,7 @@ class Player:
             self.queue = resumeQueue
 
         self.callback = callback
+        self.queue = []
     
     async def connect_channel(self, caller_channel:VoiceChannel):
         """
@@ -119,9 +120,3 @@ class Player:
         Pushes song into queue list.
         """
         self.queue.append(song)
-
-    def skip_playing(self):
-        """
-        Returns a message to be sent to text channel
-        """
-        pass

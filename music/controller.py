@@ -11,16 +11,19 @@ from discord.user import User
 
 class Controller:
 
-    config = {}
+    config:dict = None
     music_player:Player = None
 
-    # Used to check if running a function is async safe. Set to false to disallow other functions to run
-    # async_safe = True
+    # list containing lambdas refering to functions, used to ensure programs execute one after the other
+    cmd_queue:list = None
     
     def __init__(self, guild:Guild=None):
         if guild is None:
             raise TypeError('Guild cannot be none!')
             return None
+
+        self.cmd_queue = []
+        self.config = {}
         
         self.guild = guild
         guild_name = guild.name
@@ -83,13 +86,15 @@ class Controller:
             self.music_player.start_playing()
 
     async def play_url(self, url, caller:Member):
-
         song:tuple(str, str, int) = self.music_player.extract_info(url)
         self.music_player.register_song(song)
 
         # Avoid connecting if already connected
         if self.music_player.connected_channel == None:
-            await self.music_player.connect_channel(caller.voice.channel)
+            try:
+                await self.music_player.connect_channel(caller.voice.channel)
+            except Exception as e:
+                pass #do something
 
         if not self.music_player.is_playing:
             self.music_player.start_playing()
