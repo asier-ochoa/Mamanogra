@@ -15,6 +15,8 @@ class Player:
     """
     The music queue is represented with a list containing tuples:
     - (<name>,<link>,<duration>)
+    Optionally:
+    - (<name>,<link>,<duration>,<seek>)
     """
 
     # This is a reference to a callback function in controller, called after a song ends
@@ -89,9 +91,13 @@ class Player:
         if len(self.queue) < 1:
             raise Exception("No song currently on queue.")
 
+        if len(self.queue[0]) > 3:
+            ffmpeg_params = f'-ss {self.queue[0][3].strftime("%H:%M:%S")}'
+        else:
+            ffmpeg_params = ''
+
         url = self.queue[0][1]
-        self.connected_channel.play(FFmpegPCMAudio(url), after=lambda error: self.end_playing_song(error))
-        self.is_playing = True
+        self.connected_channel.play(FFmpegPCMAudio(url, before_options=ffmpeg_params), after=lambda error: self.end_playing_song(error))
 
     def end_playing_song(self, error):
         """
@@ -100,23 +106,28 @@ class Player:
         # lock = Lock() # Could use these locks to guarantee safety
         # lock.acquire()
         self.queue.pop(0)
-        self.is_playing = False
         # lock.release()
-
         self.callback()
 
     def pause(self):
         self.connected_channel.pause()
-        self.is_paused = True
         pass
 
     def resume_playing(self):
         self.connected_channel.resume()
-        self.is_paused = False
         pass
 
-    def register_song(self, song):
+    def stop_playing(self):
+        self.connected_channel.stop()
+
+    def register_song(self, song, time = None):
         """
         Pushes song into queue list.
+        You can optionally pass a time parameter to seek
+        so it gets inserted as next song
         """
-        self.queue.append(song)
+        if time is not None:
+            song = (song[0],song[1],song[2], time)
+            self.queue.insert(1, song)
+        else:
+            self.queue.append(song)

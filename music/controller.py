@@ -1,9 +1,12 @@
 import os
 from io import TextIOWrapper
 import json
+import datetime
+import re
 
 import globals
 from music.player import Player
+from exceptions import InvalidArgumentFormat
 
 from discord.guild import Guild
 from discord.member import Member
@@ -96,14 +99,42 @@ class Controller:
             except Exception as e:
                 pass #do something
 
-        if not self.music_player.is_playing:
+        if not self.music_player.connected_channel.is_playing():
             self.music_player.start_playing()
-        
 
     async def pause(self):
-        if not self.music_player.is_paused and self.music_player.is_playing:
-            self.music_player.pause()
+        if self.music_player.connected_channel is not None:
+            if not self.music_player.connected_channel.is_paused() and self.music_player.connected_channel.is_playing():
+                self.music_player.pause()
 
     async def resume(self):
-        if self.music_player.is_paused:
+        if self.music_player.connected_channel is not None:
             self.music_player.resume_playing()
+
+    async def skip(self):
+        if self.music_player.connected_channel is not None:
+            if self.music_player.connected_channel.is_playing():
+                self.music_player.stop_playing()
+
+    async def seek(self, time:str):
+        if not re.match(r'[:0-9]{1,8}', time):
+            raise InvalidArgumentFormat(f'Time argument "{str}" for seek command invalid.')
+
+        time = time.split(sep=':')
+        while len(time) > 3:
+            time.pop(0)
+        while len(time) < 3:
+            time.insert(0, '0')
+        for i in range(0, len(time)):
+            time[i] = int(time[i])
+            if time[i] > 59:
+                time[i] = 59
+            if i == 0 and time[i] > 23:
+                time[i] = 23
+
+        timeD = datetime.time(time[0], time[1], time[2])
+        print(time)
+        song = (self.music_player.queue[0][0], self.music_player.queue[0][1], self.music_player.queue[0][2])
+        if self.music_player.connected_channel is not None:
+            self.music_player.register_song(song, time=timeD)
+            self.music_player.stop_playing()

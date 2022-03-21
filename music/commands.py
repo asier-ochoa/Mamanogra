@@ -14,7 +14,7 @@ class Music_cog(commands.Cog):
 
     @commands.command()
     async def play(self, ctx:Context, url:str):
-        ctrl = await find_controller(ctx.guild)
+        ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.play_url, (url, ctx.author)))
 
     @commands.command()
@@ -26,6 +26,16 @@ class Music_cog(commands.Cog):
     async def resume(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.resume, ()))
+
+    @commands.command()
+    async def skip(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        ctrl.cmd_queue.append((ctrl.skip, ()))
+
+    @commands.command()
+    async def seek(self, ctx:Context, seek:str):
+        ctrl = find_controller(ctx.guild)
+        ctrl.cmd_queue.append((ctrl.seek, (seek)))
 
 # ====main function below this line====
 
@@ -43,7 +53,7 @@ help = """```
 +? <-> Query the queue
 ```"""
 
-async def find_controller(guild) -> Controller:
+def find_controller(guild) -> Controller:
     """
     Iterates through list of touples and returns controller to corresponding guild
     """
@@ -67,11 +77,18 @@ async def setup_post():
 lock = asyncio.Lock()
 
 async def cmd_loop(ctrl:Controller):
+    """
+    Loop that executes a certain command queue.
+    Pulls double duty and verifies permissions
+    """
     while True:
         global lock
         await asyncio.sleep(1)
         async with lock:
             if len(ctrl.cmd_queue) > 0:
                 params = ctrl.cmd_queue[0][1]
-                await ctrl.cmd_queue[0][0](*params)
+                if isinstance(params, tuple):
+                    await ctrl.cmd_queue[0][0](*params)
+                else:
+                    await ctrl.cmd_queue[0][0](params)
                 ctrl.cmd_queue.pop(0)
