@@ -12,6 +12,8 @@ from discord.guild import Guild
 from discord.member import Member
 from discord.user import User
 
+import asyncio
+
 class Controller:
 
     config:dict = None
@@ -20,7 +22,7 @@ class Controller:
     # list containing lambdas refering to functions, used to ensure programs execute one after the other
     cmd_queue:list = None
     
-    def __init__(self, guild:Guild=None):
+    def __init__(self, guild:Guild=None, bot=None):
         if guild is None:
             raise TypeError('Guild cannot be none!')
             return None
@@ -58,6 +60,8 @@ class Controller:
         f.close()
         self.config = json.loads(fstr)
 
+        self.bot = bot
+
     async def check_user_privilege(self, user:User, elevated=False) -> bool:
         """
         Check if a certain user is allowed to execute music commands.
@@ -87,20 +91,24 @@ class Controller:
         """
         if len(self.music_player.queue) > 0:
             self.music_player.start_playing()
+        else:
+            self.bot.loop.create_task(self.music_player.connected_channel.disconnect())
+            self.music_player.connected_channel = None
 
     async def play_url(self, url, caller:Member):
-        song:tuple(str, str, int) = self.music_player.extract_info(url)
-        self.music_player.register_song(song)
+        if caller.voice != None:
+            song:tuple(str, str, int) = self.music_player.extract_info(url)
+            self.music_player.register_song(song)
 
-        # Avoid connecting if already connected
-        if self.music_player.connected_channel == None:
-            try:
-                await self.music_player.connect_channel(caller.voice.channel)
-            except Exception as e:
-                pass #do something
+            # Avoid connecting if already connected
+            if self.music_player.connected_channel == None:
+                try:
+                    await self.music_player.connect_channel(caller.voice.channel)
+                except Exception as e:
+                    pass #do something
 
-        if not self.music_player.connected_channel.is_playing():
-            self.music_player.start_playing()
+            if not self.music_player.connected_channel.is_playing():
+                self.music_player.start_playing()
 
     async def pause(self):
         if self.music_player.connected_channel is not None:
@@ -133,8 +141,12 @@ class Controller:
                 time[i] = 23
 
         timeD = datetime.time(time[0], time[1], time[2])
-        print(time)
+        timeSec = timeD.hour * 3600 + timeD.minute * 60 + timeD.second
         song = (self.music_player.queue[0][0], self.music_player.queue[0][1], self.music_player.queue[0][2])
+
+        if timeSec > self.music_player.queue[0][2]:
+            timeD = datetime.time(0,0,0)
+        
         if self.music_player.connected_channel is not None:
             self.music_player.register_song(song, time=timeD)
             self.music_player.stop_playing()

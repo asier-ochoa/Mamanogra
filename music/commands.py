@@ -70,7 +70,7 @@ async def on_ready():
 async def setup_post():
     global bot
     async for guild in bot.fetch_guilds():
-        ctrl = Controller(guild=guild)
+        ctrl = Controller(guild=guild, bot=bot)
         music_ctrl_list.append((ctrl, guild))
         bot.loop.create_task(cmd_loop(ctrl))
 
