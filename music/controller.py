@@ -139,6 +139,11 @@ class Controller:
             if self.music_player.connected_channel.is_playing():
                 self.music_player.stop_playing()
 
+    async def skip_all(self):
+        if self.music_player.connect_channel is not None:
+            self.music_player.queue = ['LMAO']
+            self.music_player.stop_playing()
+
     async def seek(self, time:str):
         if not re.match(r'[:0-9]{1,8}', time):
             raise InvalidArgumentFormat(f'Time argument "{str}" for seek command invalid.')

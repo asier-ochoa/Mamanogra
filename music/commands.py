@@ -10,7 +10,7 @@ import asyncio
 class Music_cog(commands.Cog):
     @commands.command()
     async def info(self, ctx:Context):
-        await ctx.send(content=f"```Mamanogra v0.1 - probably broken\nMade by SmugTwingo\nUptime: {datetime.now() - started_time}```")
+        await ctx.send(content=f"```Mamanogra v0.1 - probably broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command()
     async def play(self, ctx:Context, *, query):
@@ -32,10 +32,15 @@ class Music_cog(commands.Cog):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.resume, ()))
 
-    @commands.command()
+    @commands.group()
     async def skip(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.skip, ()))
+
+    @skip.command()
+    async def all(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        ctrl.cmd_queue.append((ctrl.skip_all, ()))
 
     @commands.command()
     async def seek(self, ctx:Context, seek:str):
