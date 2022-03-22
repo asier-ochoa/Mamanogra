@@ -110,6 +110,21 @@ class Controller:
             if not self.music_player.connected_channel.is_playing():
                 self.music_player.start_playing()
 
+    async def play_query(self, query, caller:Member):
+        if caller.voice != None:
+            id = self.music_player.query_extract(query)
+            song = self.music_player.extract_info(id)
+            self.music_player.register_song(song)
+
+            if self.music_player.connected_channel == None:
+                try:
+                    await self.music_player.connect_channel(caller.voice.channel)
+                except Exception as e:
+                    pass #do something
+
+            if not self.music_player.connected_channel.is_playing():
+                self.music_player.start_playing()
+
     async def pause(self):
         if self.music_player.connected_channel is not None:
             if not self.music_player.connected_channel.is_paused() and self.music_player.connected_channel.is_playing():

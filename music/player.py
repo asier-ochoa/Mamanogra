@@ -35,7 +35,7 @@ class Player:
         Passing a list to the bot with songs will instantiate
         a given song queue.
         """
-        self.yt_client = YoutubeDL()
+        self.yt_client = YoutubeDL({'noplaylist':'True'})
         if resumeQueue is not None:
             self.queue = resumeQueue
 
@@ -55,6 +55,10 @@ class Player:
                 pass #put message about lacking permissions
         else:
             pass #throw exception about already being connected
+
+    def query_extract(self, query:str):
+        info = self.yt_client.extract_info(f'ytsearch:{query}', download=False)
+        return info['entries'][0]['id']
 
     def extract_info(self, url:str):
         info = self.yt_client.extract_info(url, download=False)

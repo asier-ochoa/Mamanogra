@@ -1,4 +1,4 @@
-from discord import Message, TextChannel
+from discord import Message, TextChannel, Embed
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
@@ -13,9 +13,14 @@ class Music_cog(commands.Cog):
         await ctx.send(content=f"```Mamanogra v0.1 - probably broken\nMade by SmugTwingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command()
-    async def play(self, ctx:Context, url:str):
+    async def play(self, ctx:Context, *, query):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.play_url, (url, ctx.author)))
+        embeds = ctx.message.embeds
+        if len(embeds) != 0:
+            link:Embed = embeds[0]
+            ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author)))
+        else:
+            ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author)))
 
     @commands.command()
     async def pause(self, ctx:Context):
