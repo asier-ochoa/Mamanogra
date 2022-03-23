@@ -1,4 +1,4 @@
-from discord import Message, TextChannel, Embed
+from discord import Message, TextChannel, Embed, Activity, ActivityType
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
@@ -12,7 +12,11 @@ class Music_cog(commands.Cog):
     async def info(self, ctx:Context):
         await ctx.send(content=f"```Mamanogra v0.1 - probably broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
-    @commands.command()
+    @commands.command(name='help', aliases=['h'])
+    async def help_c(self, ctx:Context):
+        await ctx.send(help_str)
+
+    @commands.command(aliases=['p'])
     async def play(self, ctx:Context, *, query):
         ctrl = find_controller(ctx.guild)
         embeds = ctx.message.embeds
@@ -32,13 +36,13 @@ class Music_cog(commands.Cog):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.resume, ()))
 
-    @commands.group()
+    @commands.command(aliases=['s'])
     async def skip(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.skip, ()))
 
-    @skip.command()
-    async def all(self, ctx:Context):
+    @commands.command()
+    async def clear(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.skip_all, ()))
 
@@ -47,20 +51,31 @@ class Music_cog(commands.Cog):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.seek, (seek)))
 
+    @commands.command(aliases=['q'])
+    async def queue(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))
+
 # ====main function below this line====
 
 # -----Pre Setup------
-bot = commands.Bot(command_prefix='+')
+bot = commands.Bot(command_prefix='+',strip_after_prefix=True, status="dont be a ____")
+bot.remove_command('help')
 bot.add_cog(cog=Music_cog())
 # --------------------
 
 started_time = datetime.now()
 music_ctrl_list = [] #list containing a touple of every instance of the bot in a server and every guild
 # ex: [(<controller>,<guild>),...,('controller1','Punishment Zone')]
-help = """```
+help_str = """```
 ===List of Music commands===
-++ {url | query} <-> Plays song or adds song to queue
-+? <-> Query the queue
+- play {url | query}      <-> Plays song or adds song to queue and connects bot to voice channel
+- queue                   <-> Query the queue
+- pause                   <-> Don't be retarded
+- resume                  <-> Don't be retarded
+- skip                    <-> Skips current song (Don't be retarded)
+- clear                   <-> Removes all songs from queue and skips current song
+- seek {%H:%M:%S}         <-> Seeks to the given timestamp in a song. If timestamp is invalid restarts the song
 ```"""
 
 def find_controller(guild) -> Controller:
@@ -83,6 +98,10 @@ async def setup_post():
         ctrl = Controller(guild=guild, bot=bot)
         music_ctrl_list.append((ctrl, guild))
         bot.loop.create_task(cmd_loop(ctrl))
+        
+        #Display number of connected servers
+        x = len(bot.guilds)
+        await bot.change_presence(activity=Activity(type=1, name=f'on {x} servers'))
 
 lock = asyncio.Lock()
 

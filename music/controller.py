@@ -11,6 +11,7 @@ from exceptions import InvalidArgumentFormat
 from discord.guild import Guild
 from discord.member import Member
 from discord.user import User
+from discord.ext.commands import Context
 
 import asyncio
 
@@ -170,3 +171,24 @@ class Controller:
         if self.music_player.connected_channel is not None:
             self.music_player.register_song(song, time=timeD)
             self.music_player.stop_playing()
+
+    async def query_queue(self, ctx:Context):
+        i = 0
+        msg:str = ''
+        for s in self.music_player.queue:
+            title, duration = s[0], s[2]
+            print(title)
+            print(duration)
+            hh, mm, ss = int(duration / 3600), int(duration / 60) % 60, duration % 60
+            hh, mm, ss = f'{hh:02d}',f'{mm:02d}',f'{ss:02d}'
+            dur_str = f'{hh}:{mm}:{ss}' if int(hh) > 0 else f'{mm}:{ss}'
+
+            msg += f'{i + 1}: {title} - {dur_str}'
+            if i == 0:
+                msg = f'{msg} (CURRENT)\n'
+            else:
+                msg = f'{msg} -> (est. )\n'
+            i += 1
+        
+        if len(self.music_player.queue) > 0:
+            await ctx.send(f'```{msg}```')
