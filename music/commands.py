@@ -56,6 +56,10 @@ class Music_cog(commands.Cog):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))
 
+    @commands.command(name='np')
+    async def now_playing(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        ctrl.cmd_queue.append(object)
 # ====main function below this line====
 
 # -----Pre Setup------

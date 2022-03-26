@@ -88,6 +88,7 @@ class Player:
 
         If a string is passed to the url_override parameter, a specific url can be played. (Not Implemented)
         """
+        FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         channel = self.connected_channel
         if channel is None:
             raise Exception("Bot not connected to any voice channel.")
@@ -100,8 +101,9 @@ class Player:
         else:
             ffmpeg_params = ''
 
+        FFMPEG_OPTIONS['before_options'] = FFMPEG_OPTIONS['before_options'] + ffmpeg_params
         url = self.queue[0][1]
-        self.connected_channel.play(FFmpegPCMAudio(url, before_options=ffmpeg_params), after=lambda error: self.end_playing_song(error))
+        self.connected_channel.play(FFmpegPCMAudio(url, **FFMPEG_OPTIONS), after=lambda error: self.end_playing_song(error))
 
     def end_playing_song(self, error):
         """
