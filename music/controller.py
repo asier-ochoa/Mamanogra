@@ -37,6 +37,9 @@ class Controller:
 
         self.music_player = Player(self.after_song) #instantiates the music client
 
+        self.timer_task = None #contains reference to task with timer
+        self.timer = 0
+
         #default config template
         configData = {
             "users": {}, #inside values must be "username":"blacklist | whitelist | admin | owner"
@@ -91,9 +94,14 @@ class Controller:
         Gets called after a song ends playing
         """
         if len(self.music_player.queue) > 0:
+            self.timer_task.cancel()
+            self.timer = 0
             self.music_player.start_playing()
+            self.timer_task = self.bot.loop.create_task(self.timer_task_coro())
         else:
             self.bot.loop.create_task(self.music_player.connected_channel.disconnect())
+            self.timer_task.cancel()
+            self.timer = 0
             self.music_player.connected_channel = None
 
     async def play_url(self, url, caller:Member):
@@ -109,6 +117,7 @@ class Controller:
                     pass #do something
 
             if not self.music_player.connected_channel.is_playing():
+                self.timer_task = self.bot.loop.create_task(self.timer_task_coro())
                 self.music_player.start_playing()
 
     async def play_query(self, query, caller:Member):
@@ -124,15 +133,18 @@ class Controller:
                     pass #do something
 
             if not self.music_player.connected_channel.is_playing():
+                self.timer_task = self.bot.loop.create_task(self.timer_task_coro())
                 self.music_player.start_playing()
 
     async def pause(self):
         if self.music_player.connected_channel is not None:
             if not self.music_player.connected_channel.is_paused() and self.music_player.connected_channel.is_playing():
+                self.timer_task.cancel()
                 self.music_player.pause()
 
     async def resume(self):
         if self.music_player.connected_channel is not None:
+            self.timer_task = self.bot.loop.create_task(self.timer_task_coro())
             self.music_player.resume_playing()
 
     async def skip(self):
@@ -167,28 +179,50 @@ class Controller:
 
         if timeSec > self.music_player.queue[0][2]:
             timeD = datetime.time(0,0,0)
+            timeSec = 0
         
         if self.music_player.connected_channel is not None:
             self.music_player.register_song(song, time=timeD)
             self.music_player.stop_playing()
+            await asyncio.sleep(1)
+            self.timer = timeSec
 
     async def query_queue(self, ctx:Context):
         i = 0
+        accumulated_est = 0
         msg:str = ''
         for s in self.music_player.queue:
             title, duration = s[0], s[2]
-            print(title)
-            print(duration)
-            hh, mm, ss = int(duration / 3600), int(duration / 60) % 60, duration % 60
+            hh, mm, ss = s_to_h(duration)
             hh, mm, ss = f'{hh:02d}',f'{mm:02d}',f'{ss:02d}'
             dur_str = f'{hh}:{mm}:{ss}' if int(hh) > 0 else f'{mm}:{ss}'
 
-            msg += f'{i + 1}: {title} - {dur_str}'
+            msg += f'{i + 1}: {title}'
             if i == 0:
-                msg = f'{msg} (CURRENT)\n'
+                hh, mm, ss = s_to_h(self.timer)
+                hh, mm, ss = f'{hh:02d}',f'{mm:02d}',f'{ss:02d}'
+                dur_str_current = f'{hh}:{mm}:{ss}' if int(hh) > 0 else f'{mm}:{ss}'
+                msg = f'{msg} - {dur_str_current}/{dur_str} (CURRENT)\n'
+
+                accumulated_est += duration - self.timer
             else:
-                msg = f'{msg} -> (est. )\n'
+                hh, mm, ss = s_to_h(accumulated_est)
+                hh, mm, ss = f'{hh:02d}',f'{mm:02d}',f'{ss:02d}'
+                dur_str_accumulated = f'{hh}:{mm}:{ss}' if int(hh) > 0 else f'{mm}:{ss}'
+                msg = f'{msg} - {dur_str} -> (est. {dur_str_accumulated})\n'
+                accumulated_est += duration
             i += 1
         
         if len(self.music_player.queue) > 0:
             await ctx.send(f'```{msg}```')
+
+    async def timer_task_coro(self):
+        try:
+            while True:
+                await asyncio.sleep(1)
+                self.timer += 1
+        except:
+            pass
+
+def s_to_h(duration):
+    return int(duration / 3600), int(duration / 60) % 60, duration % 60

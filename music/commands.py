@@ -59,7 +59,7 @@ class Music_cog(commands.Cog):
 # ====main function below this line====
 
 # -----Pre Setup------
-bot = commands.Bot(command_prefix='+',strip_after_prefix=True, status="dont be a ____")
+bot = commands.Bot(command_prefix='++',strip_after_prefix=True, status="dont be a ____")
 bot.remove_command('help')
 bot.add_cog(cog=Music_cog())
 # --------------------
@@ -112,7 +112,7 @@ async def cmd_loop(ctrl:Controller):
     """
     while True:
         global lock
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
         async with lock:
             if len(ctrl.cmd_queue) > 0:
                 params = ctrl.cmd_queue[0][1]
