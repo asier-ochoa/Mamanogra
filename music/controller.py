@@ -33,7 +33,7 @@ class Controller:
         
         self.guild = guild
         guild_name = guild.name
-        config_path = globals.SERVER_FOLDER + '/' + guild.name + '/' + 'music.json'
+        self.config_path = globals.SERVER_FOLDER + '/' + guild.name + '/' + 'music.json'
 
         self.music_player = Player(self.after_song) #instantiates the music client
 
@@ -49,14 +49,14 @@ class Controller:
             "whitelist" : False, #boolean to only allow whitelisted users call commands
         }
 
-        if not os.path.exists(config_path):
-            os.makedirs(os.path.dirname(config_path), exist_ok=True)
-            f = open(config_path, 'w')
+        if not os.path.exists(self.config_path):
+            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+            f = open(self.config_path, 'w')
             f.write(json.dumps(configData,indent=3))
             f.close()
         
         #loads current config
-        f = open(config_path)
+        f = open(self.config_path)
         fstr:str = ''
         for line in f:
             fstr = fstr + line
@@ -206,22 +206,39 @@ class SettingController():
     def __init__(self, parent):
         self.controller:Controller = parent
 
+    def save_config(func):
+        """
+        Decorator to save to config file after executing a config changing function
+        """
+        def wrapper(*args, **kwargs):
+            ret = func(*args, **kwargs)
+            f = open(args[0].controller.config_path, 'w')
+            f.write(json.dumps(args[0].controller.config,indent=3))
+            f.close()
+            return ret
+        return wrapper
+
+    @save_config
     def music_add_user(self, user:User, rank:str):
         if self.controller.config["users"].get(str(user.id)) != 'admin':
             self.controller.config["users"][str(user.id)] = rank
 
+    @save_config
     def music_remove_user(self, user:User):
         if str(user.id) in self.controller.config["users"].keys():
             if self.controller.config["users"].get(str(user.id)) != 'admin':
                 self.controller.config["users"].pop(str(user.id))
 
+    @save_config
     def music_remove_admin(self, user:User):
         if str(user.id) in self.controller.config["users"].keys():
             self.controller.config["users"].pop(str(user.id))
         
+    @save_config
     def toggle_whitelist_mode(self):
         self.controller.config["whitelist"] = not self.controller.config["whitelist"]
 
+    @save_config
     def register_owner(self, user:User):
         self.controller.config["owner"] = str(user.id)
 
