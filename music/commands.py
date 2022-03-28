@@ -1,4 +1,4 @@
-from discord import Message, TextChannel, Embed, Activity, ActivityType
+from discord import Message, TextChannel, Embed, Activity, ActivityType, Member, Intents
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
@@ -10,6 +10,7 @@ import asyncio
 class Music_cog(commands.Cog):
     @commands.command()
     async def info(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
         await ctx.send(content=f"```Mamanogra v0.1 - probably broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command(name='help', aliases=['h'])
@@ -19,53 +20,119 @@ class Music_cog(commands.Cog):
     @commands.command(aliases=['p'])
     async def play(self, ctx:Context, *, query):
         ctrl = find_controller(ctx.guild)
-        embeds = ctx.message.embeds
-        if len(embeds) != 0:
-            link:Embed = embeds[0]
-            ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author)))
-        else:
-            ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author)))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            embeds = ctx.message.embeds
+            if len(embeds) != 0:
+                link:Embed = embeds[0]
+                ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author)))
+            else:
+                ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author)))
 
     @commands.command()
     async def pause(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.pause, ()))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            ctrl.cmd_queue.append((ctrl.pause, ()))
 
     @commands.command()
     async def resume(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.resume, ()))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            ctrl.cmd_queue.append((ctrl.resume, ()))
 
     @commands.command(aliases=['s'])
     async def skip(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.skip, ()))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            ctrl.cmd_queue.append((ctrl.skip, ()))
 
     @commands.command()
     async def clear(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.skip_all, ()))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            ctrl.cmd_queue.append((ctrl.skip_all, ()))
 
     @commands.command()
     async def seek(self, ctx:Context, seek:str):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append((ctrl.seek, (seek)))
+        if ctrl.setting_controller.check_user_privilege(ctx.author):
+            ctrl.cmd_queue.append((ctrl.seek, (seek)))
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))
 
-    @commands.command(name='np')
-    async def now_playing(self, ctx:Context):
+class SettingsCog(commands.Cog):
+    @commands.group(invoke_without_command=True)
+    async def config(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        ctrl.cmd_queue.append(object)
+        await ctrl.setting_controller.query_settings(ctx)
+
+    @config.command()
+    async def whitelist(self, ctx:Context, *, user):
+        ctrl = find_controller(ctx.guild)
+        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
+            member = await ctx.guild.query_members(query = user)
+
+            if len(member) > 0:
+                member = member[0]
+                ctrl.setting_controller.music_add_user(member, 'whitelist')
+
+    @config.command()
+    async def blacklist(self, ctx:Context, *, user):
+        ctrl = find_controller(ctx.guild)
+        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
+            member = await ctx.guild.query_members(query = user)
+
+            if len(member) > 0:
+                member = member[0]
+                ctrl.setting_controller.music_add_user(member, 'blacklist')
+
+    @config.command()
+    async def delist(self, ctx:Context, *, user):
+        ctrl = find_controller(ctx.guild)
+        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
+            member = await ctx.guild.query_members(query = user)
+
+            if len(member) > 0:
+                member = member[0]
+                ctrl.setting_controller.music_remove_user(member)
+
+    @config.command()
+    async def admin(self, ctx:Context, *, user):
+        ctrl = find_controller(ctx.guild)
+        if str(ctx.author.id) == ctrl.config["owner"]:
+            member = await ctx.guild.query_members(query = user)
+
+            if len(member) > 0:
+                member = member[0]
+                ctrl.setting_controller.music_add_user(member, 'admin')
+
+    @config.command()
+    async def deadmin(self, ctx:Context, *, user):
+        ctrl = find_controller(ctx.guild)
+        if str(ctx.author.id) == ctrl.config["owner"]:
+            member = await ctx.guild.query_members(query = user)
+
+            if len(member) > 0:
+                member = member[0]
+                ctrl.setting_controller.music_remove_admin(member)
+
+    @config.command()
+    async def toggle(self, ctx:Context):
+        ctrl = find_controller(ctx.guild)
+        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
+            ctrl.setting_controller.toggle_whitelist_mode()
+
 # ====main function below this line====
 
 # -----Pre Setup------
-bot = commands.Bot(command_prefix='++',strip_after_prefix=True, status="dont be a ____")
+intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
+bot = commands.Bot(command_prefix='++',strip_after_prefix=True, intents=intent)
 bot.remove_command('help')
 bot.add_cog(cog=Music_cog())
+bot.add_cog(cog=SettingsCog())
 # --------------------
 
 started_time = datetime.now()
@@ -98,14 +165,16 @@ async def on_ready():
 
 async def setup_post():
     global bot
-    async for guild in bot.fetch_guilds():
+    for guild in bot.guilds:
         ctrl = Controller(guild=guild, bot=bot)
         music_ctrl_list.append((ctrl, guild))
+        if guild.owner is not None:
+            ctrl.setting_controller.register_owner(guild.owner)
         bot.loop.create_task(cmd_loop(ctrl))
         
-        #Display number of connected servers
-        x = len(bot.guilds)
-        await bot.change_presence(activity=Activity(type=1, name=f'on {x} servers'))
+    #Display number of connected servers
+    x = len(bot.guilds)
+    await bot.change_presence(activity=Activity(type=1, name=f'on {x} servers'))
 
 lock = asyncio.Lock()
 

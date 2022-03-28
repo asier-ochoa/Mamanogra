@@ -42,12 +42,11 @@ class Controller:
 
         #default config template
         configData = {
-            "users": {}, #inside values must be "username":"blacklist | whitelist | admin | owner"
-            "prefixOverride" : None,
+            "owner": None,
+            "users": {}, #inside values must be "username":"blacklist | whitelist | admin" , tuple user + value
             "forceTextChannel" : None, #force bot to only answer and reply in said channel
             "forceVoiceChannel" : None, #force bot to only play in certain void channel
             "whitelist" : False, #boolean to only allow whitelisted users call commands
-            "playlists":{}
         }
 
         if not os.path.exists(config_path):
@@ -64,30 +63,9 @@ class Controller:
         f.close()
         self.config = json.loads(fstr)
 
+        self.setting_controller = SettingController(self)
+
         self.bot = bot
-
-    async def check_user_privilege(self, user:User, elevated=False) -> bool:
-        """
-        Check if a certain user is allowed to execute music commands.
-        Takes in a discord.User object.
-
-        Pass elevated=True for admin commands
-        """
-        privilege = self.config['users'].get(user.name)
-        is_whitelist = self.config['whitelist']
-
-        if not elevated:
-            if is_whitelist:
-                if privilege in ('whitelist','admin','owner'):
-                    return True
-            else:
-                if privilege != 'blacklist':
-                    return True
-        else:
-            if privilege in ('admin','owner'):
-                return True
-
-        return False
 
     def after_song(self):
         """
@@ -223,6 +201,56 @@ class Controller:
                 self.timer += 1
         except:
             pass
+
+class SettingController():
+    def __init__(self, parent):
+        self.controller:Controller = parent
+
+    def music_add_user(self, user:User, rank:str):
+        if self.controller.config["users"].get(str(user.id)) != 'admin':
+            self.controller.config["users"][str(user.id)] = rank
+
+    def music_remove_user(self, user:User):
+        if str(user.id) in self.controller.config["users"].keys():
+            if self.controller.config["users"].get(str(user.id)) != 'admin':
+                self.controller.config["users"].pop(str(user.id))
+
+    def music_remove_admin(self, user:User):
+        if str(user.id) in self.controller.config["users"].keys():
+            self.controller.config["users"].pop(str(user.id))
+        
+    def toggle_whitelist_mode(self):
+        self.controller.config["whitelist"] = not self.controller.config["whitelist"]
+
+    def register_owner(self, user:User):
+        self.controller.config["owner"] = str(user.id)
+
+    def check_user_privilege(self, user:User, elevated=False) -> bool:
+        """
+        Check if a certain user is allowed to execute music commands.
+        Takes in a discord.User object.
+
+        Pass elevated=True for when checking admin commands
+        """
+        privilege = self.controller.config['users'].get(str(user.id))
+        is_whitelist = self.controller.config['whitelist']
+
+        if not elevated:
+            if is_whitelist:
+                if privilege in ('whitelist','admin') or self.controller.config["owner"] == str(user.id):
+                    return True
+            else:
+                if privilege != 'blacklist':
+                    return True
+        else:
+            if privilege == 'admin' or self.controller.config["owner"] == str(user.id):
+                return True
+
+        return False
+
+    async def query_settings(self, ctx:Context):
+        msg = f'```{json.dumps(self.controller.config, indent=3)}```'
+        await ctx.send(msg)
 
 def s_to_h(duration):
     return int(duration / 3600), int(duration / 60) % 60, duration % 60

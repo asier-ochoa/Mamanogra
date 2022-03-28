@@ -101,9 +101,9 @@ class Player:
         else:
             ffmpeg_params = ''
 
-        FFMPEG_OPTIONS['before_options'] = FFMPEG_OPTIONS['before_options'] + ffmpeg_params
+        FFMPEG_OPTIONS['before_options'] = FFMPEG_OPTIONS['before_options'] + ' ' + ffmpeg_params
         url = self.queue[0][1]
-        self.connected_channel.play(FFmpegPCMAudio(url, **FFMPEG_OPTIONS), after=lambda error: self.end_playing_song(error))
+        self.connected_channel.play(FFmpegPCMAudio(source=url, **FFMPEG_OPTIONS), after=lambda error: self.end_playing_song(error))
 
     def end_playing_song(self, error):
         """
