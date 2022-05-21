@@ -5,7 +5,7 @@ import datetime
 import re
 
 import globals
-from music.player import Player
+from music.player import Player, Song
 from exceptions import InvalidArgumentFormat
 
 from discord.guild import Guild
@@ -84,7 +84,7 @@ class Controller:
 
     async def play_url(self, url, caller:Member):
         if caller.voice != None:
-            song:tuple(str, str, int) = self.music_player.extract_info(url)
+            song = self.music_player.extract_info(url)
             self.music_player.register_song(song)
 
             # Avoid connecting if already connected
@@ -155,7 +155,7 @@ class Controller:
         timeSec = timeD.hour * 3600 + timeD.minute * 60 + timeD.second
         song = (self.music_player.queue[0][0], self.music_player.queue[0][1], self.music_player.queue[0][2])
 
-        if timeSec > self.music_player.queue[0][2]:
+        if timeSec > self.music_player.queue[0].duration:
             timeD = datetime.time(0,0,0)
             timeSec = 0
         

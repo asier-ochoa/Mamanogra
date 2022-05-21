@@ -1,8 +1,29 @@
 from discord import VoiceChannel, VoiceClient, FFmpegPCMAudio
 from yt_dlp import YoutubeDL
-from datetime import datetime
+import datetime
 from threading import Lock
 import time
+
+class Song():
+    def __init__(self, attributes:dict=None):
+        self.name:str = None
+        self.link:str = None
+        self.duration:int = None
+        self.seek:datetime.time = None
+        self.added:datetime.datetime = None
+        self.yt_id:str = None
+        
+        if attributes is not None:
+            self.__dict__ = attributes
+
+    def __len__(self):
+        len = 0
+        print(self.__dict__)
+        for a in self.__dict__:
+            if a is not None:
+                len += 1
+                print(a)
+        return len
 
 class Player:
     """
@@ -17,6 +38,8 @@ class Player:
     - (<name>,<link>,<duration>)
     Optionally:
     - (<name>,<link>,<duration>,<seek>)
+
+    In process of switching it to using song class instead
     """
 
     # This is a reference to a callback function in controller, called after a song ends
@@ -35,7 +58,8 @@ class Player:
         Passing a list to the bot with songs will instantiate
         a given song queue.
         """
-        self.yt_client = YoutubeDL({'noplaylist':'True'})
+        self.yt_client = YoutubeDL({'noplaylist':'False'})
+        # Remember to add set params.noplaylist to false for getting playlists from yt
         if resumeQueue is not None:
             self.queue = resumeQueue
 
@@ -75,7 +99,7 @@ class Player:
                     ff_link = format["url"]
                     break
 
-        return (info['title'], ff_link, info['duration'])
+        return Song({'name':info['title'], 'link':ff_link, 'duration':info['duration']})
 
     async def disconnect_channel(self):
         if self.voice_client is not None:
@@ -96,13 +120,13 @@ class Player:
         if len(self.queue) < 1:
             raise Exception("No song currently on queue.")
 
-        if len(self.queue[0]) > 3:
-            ffmpeg_params = f'-ss {self.queue[0][3].strftime("%H:%M:%S")}'
+        if self.queue[0].__dict__.get("seek") is not None:
+            ffmpeg_params = f'-ss {self.queue[0].seek.strftime("%H:%M:%S")}'
         else:
             ffmpeg_params = ''
 
         FFMPEG_OPTIONS['before_options'] = FFMPEG_OPTIONS['before_options'] + ' ' + ffmpeg_params
-        url = self.queue[0][1]
+        url = self.queue[0].link
         self.connected_channel.play(FFmpegPCMAudio(source=url, **FFMPEG_OPTIONS), after=lambda error: self.end_playing_song(error))
 
     def end_playing_song(self, error):
@@ -126,14 +150,14 @@ class Player:
     def stop_playing(self):
         self.connected_channel.stop()
 
-    def register_song(self, song, time = None):
+    def register_song(self, song:Song, time = None):
         """
         Pushes song into queue list.
         You can optionally pass a time parameter to seek
         so it gets inserted as next song
         """
         if time is not None:
-            song = (song[0],song[1],song[2], time)
+            song = Song(attributes={'name':song.name, 'link':song.link, 'duration':song.duration, 'seek':time})
             self.queue.insert(1, song)
         else:
             self.queue.append(song)
