@@ -11,7 +11,7 @@ class Music_cog(commands.Cog):
     @commands.command()
     async def info(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        await ctx.send(content=f"```Mamanogra v0.11 - Now with permissions - still broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
+        await ctx.send(content=f"```Mamanogra v0.12 - Doesn't crash with retarded playlist urls - still broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command(name='help', aliases=['h'])
     async def help_c(self, ctx:Context):

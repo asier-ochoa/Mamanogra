@@ -17,12 +17,9 @@ import asyncio
 
 class Controller:
 
-    config:dict = None
-    music_player:Player = None
 
-    # list containing lambdas refering to functions, used to ensure programs execute one after the other
-    cmd_queue:list = None
-    
+    # list containing lambdas referring to functions, used to ensure programs execute one after the other
+
     def __init__(self, guild:Guild=None, bot=None):
         if guild is None:
             raise TypeError('Guild cannot be none!')
