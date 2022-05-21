@@ -129,7 +129,7 @@ class SettingsCog(commands.Cog):
 
 # -----Pre Setup------
 intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
-bot = commands.Bot(command_prefix='++',strip_after_prefix=True, intents=intent)
+bot = commands.Bot(command_prefix='+',strip_after_prefix=True, intents=intent)
 bot.remove_command('help')
 bot.add_cog(cog=Music_cog())
 bot.add_cog(cog=SettingsCog())
