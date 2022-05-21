@@ -26,7 +26,7 @@ class Music_cog(commands.Cog):
                 link:Embed = embeds[0]
                 ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author)))
             else:
-                ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author)))
+                ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author, ctx)))
 
     @commands.command()
     async def pause(self, ctx:Context):

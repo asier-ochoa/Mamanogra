@@ -98,9 +98,13 @@ class Controller:
                 self.timer_task = self.bot.loop.create_task(self.timer_task_coro())
                 self.music_player.start_playing()
 
-    async def play_query(self, query, caller:Member):
+    async def play_query(self, query, caller: Member, ctx):
         if caller.voice != None:
-            id = self.music_player.query_extract(query)
+            try:
+                id = self.music_player.query_extract(query)
+            except Exception:
+                await ctx.send("```Put a non playlist url for fucks sake```")
+                return None
             song = self.music_player.extract_info(id)
             self.music_player.register_song(song)
 
@@ -153,7 +157,11 @@ class Controller:
 
         timeD = datetime.time(time[0], time[1], time[2])
         timeSec = timeD.hour * 3600 + timeD.minute * 60 + timeD.second
-        song = (self.music_player.queue[0][0], self.music_player.queue[0][1], self.music_player.queue[0][2])
+#        song = (self.music_player.queue[0][0], self.music_player.queue[0][1], self.music_player.queue[0][2])
+        song = Song()
+        song.name = self.music_player.queue[0].name
+        song.duration = self.music_player.queue[0].duration
+        song.link = self.music_player.queue[0].link
 
         if timeSec > self.music_player.queue[0].duration:
             timeD = datetime.time(0,0,0)
@@ -170,7 +178,7 @@ class Controller:
         accumulated_est = 0
         msg:str = ''
         for s in self.music_player.queue:
-            title, duration = s[0], s[2]
+            title, duration = s.name, s.duration
             hh, mm, ss = s_to_h(duration)
             hh, mm, ss = f'{hh:02d}',f'{mm:02d}',f'{ss:02d}'
             dur_str = f'{hh}:{mm}:{ss}' if int(hh) > 0 else f'{mm}:{ss}'

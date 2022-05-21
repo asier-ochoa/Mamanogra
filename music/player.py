@@ -64,7 +64,7 @@ class Player:
             self.queue = resumeQueue
 
         self.callback = callback
-        self.queue = []
+        self.queue:list[Song] = []
     
     async def connect_channel(self, caller_channel:VoiceChannel):
         """
@@ -82,6 +82,8 @@ class Player:
 
     def query_extract(self, query:str):
         info = self.yt_client.extract_info(f'ytsearch:{query}', download=False)
+        if len(info['entries']) < 1:
+            raise Exception('No entries after extract info')
         return info['entries'][0]['id']
 
     def extract_info(self, url:str):
