@@ -80,12 +80,12 @@ class Controller:
             self.music_player.connected_channel = None
 
     async def play_url(self, url, caller:Member):
-        if caller.voice != None:
+        if caller.voice is not None:
             song = self.music_player.extract_info(url)
             self.music_player.register_song(song)
 
             # Avoid connecting if already connected
-            if self.music_player.connected_channel == None:
+            if self.music_player.connected_channel is None:
                 try:
                     await self.music_player.connect_channel(caller.voice.channel)
                 except Exception as e:
@@ -96,7 +96,7 @@ class Controller:
                 self.music_player.start_playing()
 
     async def play_query(self, query, caller: Member, ctx):
-        if caller.voice != None:
+        if caller.voice is not None:
             try:
                 id = self.music_player.query_extract(query)
             except Exception:

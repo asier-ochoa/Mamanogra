@@ -2,6 +2,7 @@ def generate() -> str:
     servers_schema = """
     CREATE TABLE "servers" (
         "id"	INTEGER NOT NULL UNIQUE,
+        "discord_id" TEXT NOT NULL UNIQUE,
         "name"	TEXT NOT NULL,
         "owner"	INTEGER NOT NULL,
         "whitelist"	INTEGER NOT NULL DEFAULT 0,
@@ -13,7 +14,7 @@ def generate() -> str:
     users_schema = """
     CREATE TABLE "users" (
         "id"	INTEGER NOT NULL UNIQUE,
-        "discord_id"	TEXT NOT NULL,
+        "discord_id"	TEXT NOT NULL UNIQUE,
         "name"	TEXT NOT NULL,
         PRIMARY KEY("id" AUTOINCREMENT)
     );
