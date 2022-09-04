@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Callable
 
 from discord import Message, TextChannel, Embed, Activity, ActivityType, Member, Intents
@@ -11,6 +12,7 @@ import asyncio
 
 
 def db_command_log(func: Callable):
+    @wraps(func)
     async def wrapper(*args, **kwargs):
         ctx = None
         for a in args:
