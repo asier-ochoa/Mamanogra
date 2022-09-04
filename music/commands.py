@@ -30,7 +30,7 @@ class MusicCog(commands.Cog):
     @db_command_log
     async def info(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        await ctx.send(content=f"```Mamanogra v0.12 - Doesn't crash with retarded playlist urls - still broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
+        await ctx.send(content=f"```Mamanogra v0.13 - I've got your data buddy :)\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command(name='help', aliases=['h'])
     @db_command_log
@@ -153,7 +153,33 @@ class SettingsCog(commands.Cog):
         if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
             ctrl.setting_controller.toggle_whitelist_mode()
 
+
+class QueryCog(commands.Cog):
+    @commands.command()
+    @db_command_log
+    async def top(self, ctx: Context, *args):
+        with database:
+            if len(args) > 0 and args[0] == 'global':
+                scope = 'Global'
+                author = ctx.author.display_name
+                top_songs = [x for x in database.get_top_songs_global(ctx.author.id)]
+            elif args[0] == 'server':
+                scope = 'Server'
+                author = ctx.guild.name
+                top_songs = [x for x in database.get_top_songs_server(ctx.guild.id)]
+            else:
+                scope = 'Local'
+                author = ctx.author.display_name
+                top_songs = [x for x in database.get_top_songs_local(ctx.author.id, ctx.guild.id)]
+        message = f'\n**{scope} top for {author}**\n```\n'
+        i = 0
+        for s in top_songs:
+            message += f'{i+1}. {s[0]}, {s[1]}, {s[2]}\n'
+            i += 1
+        message += '```'
+        await ctx.channel.send(content=message)
 # ====main function below this line====
+
 
 # -----Pre Setup------
 intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
@@ -161,6 +187,7 @@ bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
 bot.remove_command('help')
 bot.add_cog(cog=MusicCog())
 bot.add_cog(cog=SettingsCog())
+bot.add_cog(cog=QueryCog())
 # --------------------
 
 started_time = datetime.now()
@@ -175,6 +202,9 @@ help_str = """```
 - skip                    <-> Skips current song (Don't be retarded)
 - clear                   <-> Removes all songs from queue and skips current song
 - seek {%H:%M:%S}         <-> Seeks to the given timestamp in a song. If timestamp is invalid restarts the song
+- top ->                  <-> Displays most played songs in this server
+      -> global           <-> Displays most played songs in all servers
+      -> server           <-> Displays most played songs by everyone in this server
 ```"""
 
 def find_controller(guild) -> Controller:

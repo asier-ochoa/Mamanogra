@@ -136,5 +136,79 @@ class DB:
             , [server_fk, user_fk, command, datetime.now().isoformat()]
         )
 
-database = DB()
+    def get_top_songs_local(self, user_discord_id: int, server_discord_id: int, amount=10):
+        assert self.con is not None and self.cur is not None
 
+        amount = amount if amount < 1000 else 10
+        user_fk, server_fk = self.cur.execute(
+            """
+            SELECT u.id, s.id from user_membership 
+            join servers s on s.id = user_membership.server_id
+            join users u on u.id = user_membership.user_id
+            where u.discord_id = ? and s.discord_id = ? limit 1
+            """
+            , [str(user_discord_id), str(server_discord_id)]
+        ).fetchone()
+
+        return self.cur.execute(
+            """
+            SELECT songs.video_name, songs.video_id, count(video_id) from songs
+                join users u on u.id = songs.requestee
+                join servers s on s.id = songs.server
+                where u.id = ? and s.id = ?
+                group by video_id
+                order by count(video_id) desc
+                limit ?
+            """
+            , [user_fk, server_fk, amount]
+        )
+
+    def get_top_songs_global(self, user_discord_id: int, amount=10):
+        assert self.con is not None and self.cur is not None
+
+        amount = amount if amount < 1000 else 10
+        user_fk = self.cur.execute(
+            """
+            SELECT id from users
+            where discord_id = ? limit 1
+            """
+            , [str(user_discord_id)]
+        ).fetchone()[0]
+
+        return self.cur.execute(
+            """
+            SELECT songs.video_name, songs.video_id, count(video_id) from songs
+                join users u on u.id = songs.requestee
+                where u.id = ?
+                group by video_id
+                order by count(video_id) desc
+                limit ?
+            """
+            , [user_fk, amount]
+        )
+
+    def get_top_songs_server(self, server_discord_id: int, amount=10):
+        assert self.con is not None and self.cur is not None
+
+        amount = amount if amount < 1000 else 10
+        server_fk = self.cur.execute(
+            """
+            SELECT id from servers
+            where discord_id = ? limit 1
+            """
+            , [str(server_discord_id)]
+        ).fetchone()[0]
+
+        return self.cur.execute(
+            """
+            select songs.video_name, songs.video_id, count(video_id) from songs
+                join servers s on s.id = songs.server
+                where s.id = ?
+                group by video_id
+                order by count(video_id) desc
+                limit ?
+            """
+            , [server_fk, amount]
+        )
+
+database = DB()
