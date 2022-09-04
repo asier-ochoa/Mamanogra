@@ -43,20 +43,20 @@ def generate() -> str:
         PRIMARY KEY("id" AUTOINCREMENT),
         FOREIGN KEY("server") REFERENCES "servers"("id"),
         FOREIGN KEY("requestee") REFERENCES "users"("id")
-    )
+    );
     """
 
-    # command_log_schema = """
-    # CREATE TABLE "command_log_schema" (
-    #     "id" INTEGER not null UNIQUE,
-    #     "server" INTEGER NOT NULL,
-    #     "writer" INTEGER NOT NULL,
-    #     "command" TEXT NOT NULL,
-    #     "date" TEXT NOT NULL,
-    #     PRIMARY KEY("id" AUTOINCREMENT),
-    #     FOREIGN KEY("server") REFERENCES "servers"("id"),
-    #     FOREIGN KEY("writer") REFERENCES "users"("id")
-    # )
-    # """
+    command_log_schema = """
+    CREATE TABLE "command_log_schema" (
+        "id" INTEGER not null UNIQUE,
+        "server" INTEGER NOT NULL,
+        "writer" INTEGER NOT NULL,
+        "command" TEXT NOT NULL,
+        "date" TEXT NOT NULL,
+        PRIMARY KEY("id" AUTOINCREMENT),
+        FOREIGN KEY("server") REFERENCES "servers"("id"),
+        FOREIGN KEY("writer") REFERENCES "users"("id")
+    );
+    """
 
     return "".join([v for v in locals().values()])

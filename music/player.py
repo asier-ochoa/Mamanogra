@@ -99,7 +99,7 @@ class Player:
                     ff_link = format["url"]
                     break
 
-        return Song({'name':info['title'], 'link':ff_link, 'duration':info['duration']})
+        return Song({'name':info['title'], 'link':ff_link, 'duration':info['duration'], 'yt_id': info['id']})
 
     async def disconnect_channel(self):
         if self.voice_client is not None:

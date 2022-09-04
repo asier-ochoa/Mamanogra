@@ -13,6 +13,8 @@ from discord.member import Member
 from discord.user import User
 from discord.ext.commands import Context
 
+from database.db_controller import database
+
 import asyncio
 
 
@@ -78,9 +80,11 @@ class Controller:
             self.timer = 0
             self.music_player.connected_channel = None
 
-    async def play_url(self, url, caller:Member):
+    async def play_url(self, url, caller:Member, ctx):
         if caller.voice is not None:
             song = self.music_player.extract_info(url)
+            with database:
+                database.register_song(song, caller.id, ctx.guild.id)
             self.music_player.register_song(song)
 
             # Avoid connecting if already connected
@@ -102,6 +106,8 @@ class Controller:
                 await ctx.send("```Put a non playlist url for fucks sake```")
                 return None
             song = self.music_player.extract_info(id)
+            with database:
+                database.register_song(song, caller.id, ctx.guild.id)
             self.music_player.register_song(song)
 
             if self.music_player.connected_channel == None:

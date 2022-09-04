@@ -2,15 +2,14 @@ from discord import Message, TextChannel, Embed, Activity, ActivityType, Member,
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
-from database.db_controller import DB
+from database.db_controller import database
 
 from datetime import datetime
 import asyncio
 
-database = DB()
 
 # ====Commands here==== 
-class Music_cog(commands.Cog):
+class MusicCog(commands.Cog):
     @commands.command()
     async def info(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
@@ -27,7 +26,7 @@ class Music_cog(commands.Cog):
             embeds = ctx.message.embeds
             if len(embeds) != 0:
                 link:Embed = embeds[0]
-                ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author)))
+                ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author, ctx)))
             else:
                 ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author, ctx)))
 
@@ -65,6 +64,7 @@ class Music_cog(commands.Cog):
     async def queue(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))
+
 
 class SettingsCog(commands.Cog):
     @commands.group(invoke_without_command=True)
@@ -134,7 +134,7 @@ class SettingsCog(commands.Cog):
 intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
 bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
 bot.remove_command('help')
-bot.add_cog(cog=Music_cog())
+bot.add_cog(cog=MusicCog())
 bot.add_cog(cog=SettingsCog())
 # --------------------
 
@@ -176,6 +176,7 @@ async def setup_post():
             if guild.owner is not None:
                 ctrl.setting_controller.register_owner(guild.owner)
             bot.loop.create_task(cmd_loop(ctrl))
+
             print(f"[Database] Registering server {guild.name}, {i + 1}/{len(bot.guilds)}")
             database.register_users([(x.id, x.name) for x in guild.members])
             database.register_server(guild.id, guild.name, guild.owner.id)
