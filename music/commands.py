@@ -1,3 +1,5 @@
+from typing import Callable
+
 from discord import Message, TextChannel, Embed, Activity, ActivityType, Member, Intents
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
@@ -8,18 +10,33 @@ from datetime import datetime
 import asyncio
 
 
+def db_command_log(func: Callable):
+    async def wrapper(*args, **kwargs):
+        ctx = None
+        for a in args:
+            if isinstance(a, Context):
+                ctx = a
+        with database:
+            database.log_command(ctx.message.content, ctx.author.id, ctx.guild.id)
+        return await func(*args, **kwargs)
+    return wrapper
+
+
 # ====Commands here==== 
 class MusicCog(commands.Cog):
     @commands.command()
+    @db_command_log
     async def info(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         await ctx.send(content=f"```Mamanogra v0.12 - Doesn't crash with retarded playlist urls - still broken\nMade by Smug Twingo\nUptime: {datetime.now() - started_time}```")
 
     @commands.command(name='help', aliases=['h'])
+    @db_command_log
     async def help_c(self, ctx:Context):
         await ctx.send(help_str)
 
     @commands.command(aliases=['p'])
+    @db_command_log
     async def play(self, ctx:Context, *, query):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
@@ -31,36 +48,42 @@ class MusicCog(commands.Cog):
                 ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author, ctx)))
 
     @commands.command()
+    @db_command_log
     async def pause(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
             ctrl.cmd_queue.append((ctrl.pause, ()))
 
     @commands.command()
+    @db_command_log
     async def resume(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
             ctrl.cmd_queue.append((ctrl.resume, ()))
 
     @commands.command(aliases=['s'])
+    @db_command_log
     async def skip(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
             ctrl.cmd_queue.append((ctrl.skip, ()))
 
     @commands.command()
+    @db_command_log
     async def clear(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
             ctrl.cmd_queue.append((ctrl.skip_all, ()))
 
     @commands.command()
+    @db_command_log
     async def seek(self, ctx:Context, seek:str):
         ctrl = find_controller(ctx.guild)
         if ctrl.setting_controller.check_user_privilege(ctx.author):
             ctrl.cmd_queue.append((ctrl.seek, (seek)))
 
     @commands.command(aliases=['q'])
+    @db_command_log
     async def queue(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))

@@ -47,12 +47,12 @@ def generate() -> str:
     """
 
     command_log_schema = """
-    CREATE TABLE "command_log_schema" (
+    CREATE TABLE "command_log" (
         "id" INTEGER not null UNIQUE,
         "server" INTEGER NOT NULL,
         "writer" INTEGER NOT NULL,
         "command" TEXT NOT NULL,
-        "date" TEXT NOT NULL,
+        "date_issued" TEXT NOT NULL,
         PRIMARY KEY("id" AUTOINCREMENT),
         FOREIGN KEY("server") REFERENCES "servers"("id"),
         FOREIGN KEY("writer") REFERENCES "users"("id")

@@ -113,9 +113,28 @@ class DB:
             INSERT INTO songs (server, requestee, date_requested, video_id, video_name, video_len) 
             VALUES (?, ?, ?, ?, ?, ?)
             """
-            , [server_fk, user_fk, datetime.now(), song.yt_id, song.name, song.duration]
+            , [server_fk, user_fk, datetime.now().isoformat(), song.yt_id, song.name, song.duration]
         )
 
+    def log_command(self, command: str, user_discord_id: int, server_discord_id: int):
+        assert self.con is not None and self.cur is not None
+
+        user_fk, server_fk = self.cur.execute(
+            """
+            SELECT u.id, s.id from user_membership 
+            join servers s on s.id = user_membership.server_id
+            join users u on u.id = user_membership.user_id
+            where u.discord_id = ? and s.discord_id = ? limit 1
+            """
+            , [str(user_discord_id), str(server_discord_id)]
+        ).fetchone()
+
+        self.cur.execute(
+            """
+            INSERT INTO command_log (server, writer, command, date_issued) values (?, ?, ?, ?)
+            """
+            , [server_fk, user_fk, command, datetime.now().isoformat()]
+        )
 
 database = DB()
 
