@@ -1,29 +1,27 @@
 from discord import VoiceChannel, VoiceClient, FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 import datetime
-from threading import Lock
-import time
 
 class Song():
-    def __init__(self, attributes:dict=None):
-        self.name:str = None
-        self.link:str = None
-        self.duration:int = None
-        self.seek:datetime.time = None
-        self.added:datetime.datetime = None
-        self.yt_id:str = None
+    def __init__(self, attributes: dict | None = None):
+        self.name: str | None = None
+        self.link: str | None = None
+        self.duration: int | None = None
+        self.seek: datetime.time | None = None
+        self.added: datetime.datetime | None = None
+        self.yt_id: str | None = None
         
         if attributes is not None:
             self.__dict__ = attributes
 
     def __len__(self):
-        len = 0
+        mlen = 0
         print(self.__dict__)
         for a in self.__dict__:
             if a is not None:
-                len += 1
+                mlen += 1
                 print(a)
-        return len
+        return mlen
 
 class Player:
     """

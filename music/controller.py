@@ -15,9 +15,8 @@ from discord.ext.commands import Context
 
 import asyncio
 
+
 class Controller:
-
-
     # list containing lambdas referring to functions, used to ensure programs execute one after the other
 
     def __init__(self, guild:Guild=None, bot=None):

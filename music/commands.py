@@ -2,9 +2,12 @@ from discord import Message, TextChannel, Embed, Activity, ActivityType, Member,
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
+from database.db_controller import DB
 
 from datetime import datetime
 import asyncio
+
+database = DB()
 
 # ====Commands here==== 
 class Music_cog(commands.Cog):
@@ -129,7 +132,7 @@ class SettingsCog(commands.Cog):
 
 # -----Pre Setup------
 intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
-bot = commands.Bot(command_prefix='+',strip_after_prefix=True, intents=intent)
+bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
 bot.remove_command('help')
 bot.add_cog(cog=Music_cog())
 bot.add_cog(cog=SettingsCog())
@@ -163,16 +166,22 @@ async def on_ready():
     await setup_post()
     print(bot.user.name + ' has succesfully logged in!')
 
+
 async def setup_post():
     global bot
-    for guild in bot.guilds:
-        ctrl = Controller(guild=guild, bot=bot)
-        music_ctrl_list.append((ctrl, guild))
-        if guild.owner is not None:
-            ctrl.setting_controller.register_owner(guild.owner)
-        bot.loop.create_task(cmd_loop(ctrl))
+    with database:
+        for i, guild in enumerate(bot.guilds):
+            ctrl = Controller(guild=guild, bot=bot)
+            music_ctrl_list.append((ctrl, guild))
+            if guild.owner is not None:
+                ctrl.setting_controller.register_owner(guild.owner)
+            bot.loop.create_task(cmd_loop(ctrl))
+            print(f"[Database] Registering server {guild.name}, {i + 1}/{len(bot.guilds)}")
+            database.register_users([(x.id, x.name) for x in guild.members])
+            database.register_server(guild.id, guild.name, guild.owner.id)
+            database.register_memberships(guild.id, [m.id for m in guild.members])
         
-    #Display number of connected servers
+    # Display number of connected servers
     x = len(bot.guilds)
     await bot.change_presence(activity=Activity(type=1, name=f'on {x} servers'))
 
@@ -185,7 +194,7 @@ async def cmd_loop(ctrl:Controller):
     """
     while True:
         global lock
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.2)
         async with lock:
             if len(ctrl.cmd_queue) > 0:
                 params = ctrl.cmd_queue[0][1]
