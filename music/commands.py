@@ -163,7 +163,7 @@ class QueryCog(commands.Cog):
                 scope = 'Global'
                 author = ctx.author.display_name
                 top_songs = [x for x in database.get_top_songs_global(ctx.author.id)]
-            elif args[0] == 'server':
+            elif len(args) > 0 and args[0] == 'server':
                 scope = 'Server'
                 author = ctx.guild.name
                 top_songs = [x for x in database.get_top_songs_server(ctx.guild.id)]
