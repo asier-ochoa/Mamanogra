@@ -6,9 +6,10 @@ name = "pypi"
 [packages]
 yt-dlp = "*"
 pynacl = "*"
-"discord.py" = "==1.6.0"
+"discord.py" = "==2.1.0"
+flask = "==2.2.2"
 
 [dev-packages]
 
 [requires]
-python_version = "3.10"
+python_version = "3.9"

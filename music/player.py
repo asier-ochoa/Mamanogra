@@ -1,15 +1,17 @@
+from typing import Union
+
 from discord import VoiceChannel, VoiceClient, FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 import datetime
 
 class Song():
-    def __init__(self, attributes: dict | None = None):
-        self.name: str | None = None
-        self.link: str | None = None
-        self.duration: int | None = None
-        self.seek: datetime.time | None = None
-        self.added: datetime.datetime | None = None
-        self.yt_id: str | None = None
+    def __init__(self, attributes: Union[dict, None] = None):
+        self.name: Union[str, None] = None
+        self.link: Union[str, None] = None
+        self.duration: Union[int, None] = None
+        self.seek: Union[datetime.time, None] = None
+        self.added: Union[datetime.datetime, None] = None
+        self.yt_id: Union[str, None] = None
         
         if attributes is not None:
             self.__dict__ = attributes

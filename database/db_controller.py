@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Union
 
 import database.schema as schema
 from music.player import Song
@@ -23,8 +23,8 @@ class DB:
         self.cur = None
 
     def __init__(self):
-        self.con: sqlite3.Connection | None = None
-        self.cur: sqlite3.Cursor | None = None
+        self.con: Union[sqlite3.Connection, None] = None
+        self.cur: Union[sqlite3.Cursor, None] = None
         if not isfile(self.db_file_name):
             self.create_database()
 

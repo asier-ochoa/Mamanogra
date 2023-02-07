@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from music.controller import Controller
 from database.db_controller import database
+from config import config
 
 from datetime import datetime
 import asyncio
@@ -26,6 +27,9 @@ def db_command_log(func: Callable):
 
 # ====Commands here==== 
 class MusicCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
     @commands.command()
     @db_command_log
     async def info(self, ctx:Context):
@@ -92,6 +96,8 @@ class MusicCog(commands.Cog):
 
 
 class SettingsCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
     @commands.group(invoke_without_command=True)
     async def config(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
@@ -155,6 +161,8 @@ class SettingsCog(commands.Cog):
 
 
 class QueryCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
     @commands.command()
     @db_command_log
     async def top(self, ctx: Context, *args):
@@ -182,12 +190,30 @@ class QueryCog(commands.Cog):
 
 
 # -----Pre Setup------
-intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
-bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
-bot.remove_command('help')
-bot.add_cog(cog=MusicCog())
-bot.add_cog(cog=SettingsCog())
-bot.add_cog(cog=QueryCog())
+async def disc_setup():
+    intent = Intents(members=True, guilds=True, voice_states=True, messages=True)
+    intent = Intents.default()
+    intent.members = True
+    intent.guilds = True
+    intent.voice_states = True
+    intent.message_content = True
+    intent.messages = True
+
+    bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
+    bot.remove_command('help')
+    await bot.add_cog(MusicCog(bot))
+    await bot.add_cog(SettingsCog(bot))
+    await bot.add_cog(QueryCog(bot))
+
+    @bot.event
+    async def on_ready():
+        await setup_post(bot)
+        print(bot.user.name + ' has succesfully logged in!')
+
+    async with bot:
+        await bot.start(config.discord.token)
+
+
 # --------------------
 
 started_time = datetime.now()
@@ -207,6 +233,7 @@ help_str = """```
       -> server           <-> Displays most played songs by everyone in this server
 ```"""
 
+
 def find_controller(guild) -> Controller:
     """
     Iterates through list of touples and returns controller to corresponding guild
@@ -216,14 +243,8 @@ def find_controller(guild) -> Controller:
         if t[1] == guild:
             return t[0]
 
-@bot.event
-async def on_ready():
-    await setup_post()
-    print(bot.user.name + ' has succesfully logged in!')
 
-
-async def setup_post():
-    global bot
+async def setup_post(bot):
     with database:
         for i, guild in enumerate(bot.guilds):
             ctrl = Controller(guild=guild, bot=bot)
@@ -242,6 +263,7 @@ async def setup_post():
     await bot.change_presence(activity=Activity(type=1, name=f'on {x} servers'))
 
 lock = asyncio.Lock()
+
 
 async def cmd_loop(ctrl:Controller):
     """
