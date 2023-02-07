@@ -1,6 +1,7 @@
 from functools import wraps
 from typing import Callable
 
+import discord
 from discord import Message, TextChannel, Embed, Activity, ActivityType, Member, Intents
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
@@ -217,7 +218,7 @@ async def disc_setup():
 # --------------------
 
 started_time = datetime.now()
-music_ctrl_list = [] #list containing a touple of every instance of the bot in a server and every guild
+music_ctrl_list: list[tuple[Controller, discord.Guild]] = [] #list containing a touple of every instance of the bot in a server and every guild
 # ex: [(<controller>,<guild>),...,('controller1','Punishment Zone')]
 help_str = """```
 ===List of Music commands===
