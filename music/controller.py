@@ -4,7 +4,6 @@ import json
 import datetime
 import re
 
-import globals
 from music.player import Player, Song
 from exceptions import InvalidArgumentFormat
 
@@ -31,7 +30,6 @@ class Controller:
         
         self.guild = guild
         guild_name = guild.name
-        self.config_path = globals.SERVER_FOLDER + '/' + guild.name + '/' + 'music.json'
 
         self.music_player = Player(self.after_song) #instantiates the music client
 
@@ -46,22 +44,6 @@ class Controller:
             "forceVoiceChannel" : None, #force bot to only play in certain void channel
             "whitelist" : False, #boolean to only allow whitelisted users call commands
         }
-
-        if not os.path.exists(self.config_path):
-            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-            f = open(self.config_path, 'w')
-            f.write(json.dumps(configData,indent=3))
-            f.close()
-        
-        #loads current config
-        f = open(self.config_path)
-        fstr:str = ''
-        for line in f:
-            fstr = fstr + line
-        f.close()
-        self.config = json.loads(fstr)
-
-        self.setting_controller = SettingController(self)
 
         self.bot = bot
 
@@ -212,72 +194,6 @@ class Controller:
         except:
             pass
 
-class SettingController():
-    def __init__(self, parent):
-        self.controller:Controller = parent
-
-    def save_config(func):
-        """
-        Decorator to save to config file after executing a config changing function
-        """
-        def wrapper(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            f = open(args[0].controller.config_path, 'w')
-            f.write(json.dumps(args[0].controller.config,indent=3))
-            f.close()
-            return ret
-        return wrapper
-
-    @save_config
-    def music_add_user(self, user:User, rank:str):
-        if self.controller.config["users"].get(str(user.id)) != 'admin':
-            self.controller.config["users"][str(user.id)] = rank
-
-    @save_config
-    def music_remove_user(self, user:User):
-        if str(user.id) in self.controller.config["users"].keys():
-            if self.controller.config["users"].get(str(user.id)) != 'admin':
-                self.controller.config["users"].pop(str(user.id))
-
-    @save_config
-    def music_remove_admin(self, user:User):
-        if str(user.id) in self.controller.config["users"].keys():
-            self.controller.config["users"].pop(str(user.id))
-        
-    @save_config
-    def toggle_whitelist_mode(self):
-        self.controller.config["whitelist"] = not self.controller.config["whitelist"]
-
-    @save_config
-    def register_owner(self, user:User):
-        self.controller.config["owner"] = str(user.id)
-
-    def check_user_privilege(self, user:User, elevated=False) -> bool:
-        """
-        Check if a certain user is allowed to execute music commands.
-        Takes in a discord.User object.
-
-        Pass elevated=True for when checking admin commands
-        """
-        privilege = self.controller.config['users'].get(str(user.id))
-        is_whitelist = self.controller.config['whitelist']
-
-        if not elevated:
-            if is_whitelist:
-                if privilege in ('whitelist','admin') or self.controller.config["owner"] == str(user.id):
-                    return True
-            else:
-                if privilege != 'blacklist':
-                    return True
-        else:
-            if privilege == 'admin' or self.controller.config["owner"] == str(user.id):
-                return True
-
-        return False
-
-    async def query_settings(self, ctx:Context):
-        msg = f'```{json.dumps(self.controller.config, indent=3)}```'
-        await ctx.send(msg)
 
 def s_to_h(duration):
     return int(duration / 3600), int(duration / 60) % 60, duration % 60

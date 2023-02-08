@@ -46,119 +46,53 @@ class MusicCog(commands.Cog):
     @db_command_log
     async def play(self, ctx:Context, *, query):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            embeds = ctx.message.embeds
-            if len(embeds) != 0:
-                link:Embed = embeds[0]
-                ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author, ctx)))
-            else:
-                ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author, ctx)))
+
+        embeds = ctx.message.embeds
+        if len(embeds) != 0:
+            link:Embed = embeds[0]
+            ctrl.cmd_queue.append((ctrl.play_url, (link.url, ctx.author, ctx)))
+        else:
+            ctrl.cmd_queue.append((ctrl.play_query, (query, ctx.author, ctx)))
 
     @commands.command()
     @db_command_log
     async def pause(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            ctrl.cmd_queue.append((ctrl.pause, ()))
+
+        ctrl.cmd_queue.append((ctrl.pause, ()))
 
     @commands.command()
     @db_command_log
     async def resume(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            ctrl.cmd_queue.append((ctrl.resume, ()))
+
+        ctrl.cmd_queue.append((ctrl.resume, ()))
 
     @commands.command(aliases=['s'])
     @db_command_log
     async def skip(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            ctrl.cmd_queue.append((ctrl.skip, ()))
+
+        ctrl.cmd_queue.append((ctrl.skip, ()))
 
     @commands.command()
     @db_command_log
     async def clear(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            ctrl.cmd_queue.append((ctrl.skip_all, ()))
+
+        ctrl.cmd_queue.append((ctrl.skip_all, ()))
 
     @commands.command()
     @db_command_log
     async def seek(self, ctx:Context, seek:str):
         ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author):
-            ctrl.cmd_queue.append((ctrl.seek, (seek)))
+        ctrl.cmd_queue.append((ctrl.seek, (seek)))
 
     @commands.command(aliases=['q'])
     @db_command_log
     async def queue(self, ctx:Context):
         ctrl = find_controller(ctx.guild)
         ctrl.cmd_queue.append((ctrl.query_queue,(ctx)))
-
-
-class SettingsCog(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-    @commands.group(invoke_without_command=True)
-    async def config(self, ctx:Context):
-        ctrl = find_controller(ctx.guild)
-        await ctrl.setting_controller.query_settings(ctx)
-
-    @config.command()
-    async def whitelist(self, ctx:Context, *, user):
-        ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
-            member = await ctx.guild.query_members(query = user)
-
-            if len(member) > 0:
-                member = member[0]
-                ctrl.setting_controller.music_add_user(member, 'whitelist')
-
-    @config.command()
-    async def blacklist(self, ctx:Context, *, user):
-        ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
-            member = await ctx.guild.query_members(query = user)
-
-            if len(member) > 0:
-                member = member[0]
-                ctrl.setting_controller.music_add_user(member, 'blacklist')
-
-    @config.command()
-    async def delist(self, ctx:Context, *, user):
-        ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
-            member = await ctx.guild.query_members(query = user)
-
-            if len(member) > 0:
-                member = member[0]
-                ctrl.setting_controller.music_remove_user(member)
-
-    @config.command()
-    async def admin(self, ctx:Context, *, user):
-        ctrl = find_controller(ctx.guild)
-        if str(ctx.author.id) == ctrl.config["owner"]:
-            member = await ctx.guild.query_members(query = user)
-
-            if len(member) > 0:
-                member = member[0]
-                ctrl.setting_controller.music_add_user(member, 'admin')
-
-    @config.command()
-    async def deadmin(self, ctx:Context, *, user):
-        ctrl = find_controller(ctx.guild)
-        if str(ctx.author.id) == ctrl.config["owner"]:
-            member = await ctx.guild.query_members(query = user)
-
-            if len(member) > 0:
-                member = member[0]
-                ctrl.setting_controller.music_remove_admin(member)
-
-    @config.command()
-    async def toggle(self, ctx:Context):
-        ctrl = find_controller(ctx.guild)
-        if ctrl.setting_controller.check_user_privilege(ctx.author, elevated=True):
-            ctrl.setting_controller.toggle_whitelist_mode()
 
 
 class QueryCog(commands.Cog):
@@ -203,7 +137,6 @@ async def disc_setup():
     bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
     bot.remove_command('help')
     await bot.add_cog(MusicCog(bot))
-    await bot.add_cog(SettingsCog(bot))
     await bot.add_cog(QueryCog(bot))
 
     @bot.event
@@ -247,8 +180,6 @@ async def setup_post(bot):
         for i, guild in enumerate(bot.guilds):
             ctrl = Controller(guild=guild, bot=bot)
             controllers[guild.id] = (ctrl, guild)
-            if guild.owner is not None:
-                ctrl.setting_controller.register_owner(guild.owner)
             bot.loop.create_task(cmd_loop(ctrl))
 
             print(f"[Database] Registering server {guild.name}, {i + 1}/{len(bot.guilds)}")
