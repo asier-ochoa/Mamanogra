@@ -1,16 +1,16 @@
+import asyncio
+from datetime import datetime
 from functools import wraps
 from typing import Callable
 
 import discord
-from discord import Message, TextChannel, Embed, Activity, ActivityType, Member, Intents
-from discord.ext import commands, tasks
+from discord import Embed, Activity, Intents
+from discord.ext import commands
 from discord.ext.commands import Context
-from music.controller import Controller
-from database.db_controller import database
-from config import config
 
-from datetime import datetime
-import asyncio
+from config import config
+from database.db_controller import database
+from music.controller import Controller
 
 
 def db_command_log(func: Callable):
@@ -218,7 +218,7 @@ async def disc_setup():
 # --------------------
 
 started_time = datetime.now()
-music_ctrl_list: list[tuple[Controller, discord.Guild]] = [] #list containing a touple of every instance of the bot in a server and every guild
+controllers: dict[str, tuple[Controller, discord.Guild]] = {}  # list containing a tuple of every instance of the bot in a server and every guild
 # ex: [(<controller>,<guild>),...,('controller1','Punishment Zone')]
 help_str = """```
 ===List of Music commands===
@@ -239,17 +239,14 @@ def find_controller(guild) -> Controller:
     """
     Iterates through list of touples and returns controller to corresponding guild
     """
-    global music_ctrl_list
-    for t in music_ctrl_list:
-        if t[1] == guild:
-            return t[0]
+    return controllers[guild.id][0]
 
 
 async def setup_post(bot):
     with database:
         for i, guild in enumerate(bot.guilds):
             ctrl = Controller(guild=guild, bot=bot)
-            music_ctrl_list.append((ctrl, guild))
+            controllers[guild.id] = (ctrl, guild)
             if guild.owner is not None:
                 ctrl.setting_controller.register_owner(guild.owner)
             bot.loop.create_task(cmd_loop(ctrl))
@@ -266,7 +263,7 @@ async def setup_post(bot):
 lock = asyncio.Lock()
 
 
-async def cmd_loop(ctrl:Controller):
+async def cmd_loop(ctrl: Controller):
     """
     Loop that executes a certain command queue.
     Pulls double duty and verifies permissions
