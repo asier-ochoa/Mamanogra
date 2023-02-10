@@ -133,6 +133,7 @@ async def disc_setup():
     intent.voice_states = True
     intent.message_content = True
     intent.messages = True
+    intent.reactions = True
 
     bot = commands.Bot(command_prefix='+', strip_after_prefix=True, intents=intent)
     bot.remove_command('help')

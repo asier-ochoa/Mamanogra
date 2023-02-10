@@ -5,23 +5,23 @@ from config import config
 from discord import Client, Intents, Message, Guild, Member, Reaction, User
 
 import global_state
+from forwarders import forward_message_to_server
 
 
 async def event_setup(client: Client):
     # Commands entrypoint
+
     @client.event
     async def on_message(message: Message):
-        await forward_message_to_server()  # Function to move execution over to related server
-
-    # Needed to update class structure
+        await forward_message_to_server(message)  # Function to move execution over to related server
 
     @client.event
     async def on_member_join(member: Member):
         await forward_member_to_server()
 
     @client.event
-    async def on_reaction_add(reaction: Reaction, user: Union[Member, User]:
-        await forward_reaction_to_server()
+    async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):
+        pass forward_reaction_to_server()
 
     @client.event
     async def on_guild_join(guild: Guild):
@@ -29,7 +29,7 @@ async def event_setup(client: Client):
 
     @client.event
     async def on_guild_remove(guild: Guild):
-        await remove_server()
+        await remove_server(guild)
 
 
 async def setup():
