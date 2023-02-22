@@ -5,6 +5,7 @@ from config import config
 from discord import Client, Intents, Message, Guild, Member, Reaction, User
 
 import global_state
+from discord_server import Server
 from forwarders import forward_message_to_server
 
 
@@ -40,6 +41,7 @@ async def setup():
     intent.voice_states = True
     intent.message_content = True
     intent.messages = True
+    intent.reactions = True
 
     # Declare reference to client
     main_client = Client(intents=intent)
