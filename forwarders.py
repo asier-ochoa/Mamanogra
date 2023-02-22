@@ -7,4 +7,7 @@ async def forward_message_to_server(message: Message):
     with global_state.guild_server_map_lock:
         if global_state.guild_server_map.get(message.guild.id) is not None:
             server: Server = global_state.guild_server_map[message.guild.id]
-            server.message_entrypoint(message)
+            await server.message_entrypoint(message)
+        else:
+            # possible place to handle direct messages
+            return
