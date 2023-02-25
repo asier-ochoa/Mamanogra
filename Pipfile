@@ -8,6 +8,7 @@ yt-dlp = "*"
 pynacl = "*"
 "discord.py" = "==2.1.0"
 flask = "==2.2.2"
+pydantic = "==1.10.5"
 
 [dev-packages]
 
