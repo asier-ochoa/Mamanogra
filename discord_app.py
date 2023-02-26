@@ -48,12 +48,20 @@ async def setup():
 
     await event_setup(main_client)
 
+    # Startup event
+    @main_client.event
+    def on_ready():
+        global_state.start_time = datetime.now()
+
+        for g in main_client.guilds:
+            await register_server(g)
+
     await main_client.start(token=config.discord.token, reconnect=True)
 
 #-------------- Internal guild map update --------------
 async def register_server(guild: Guild):
     with global_state.guild_server_map_lock:
-        global_state.guild_server_map[guild.id] = Server(guild)
+        global_state.guild_server_map[guild.id] =  Server(guild)
         global_state.server_membership_count += 1
 
 async def remove_server(guild: Guild):
