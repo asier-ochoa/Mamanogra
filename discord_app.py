@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Union
 
+import discord_server_defaults
 from config import config
 from discord import Client, Intents, Message, Guild, Member, Reaction, User
 
@@ -16,13 +17,13 @@ async def event_setup(client: Client):
     async def on_message(message: Message):
         await forward_message_to_server(message)  # Function to move execution over to related server
 
-    @client.event
-    async def on_member_join(member: Member):
-        await forward_member_to_server()
-
-    @client.event
-    async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):
-        pass forward_reaction_to_server()
+    # @client.event
+    # async def on_member_join(member: Member):
+    #     await forward_member_to_server()
+    #
+    # @client.event
+    # async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):
+    #     pass forward_reaction_to_server()
 
     @client.event
     async def on_guild_join(guild: Guild):
@@ -50,21 +51,28 @@ async def setup():
 
     # Startup event
     @main_client.event
-    def on_ready():
+    async def on_ready():
         global_state.start_time = datetime.now()
 
         for g in main_client.guilds:
             await register_server(g)
 
+        for s in global_state.guild_server_map.values():
+            s.register_commands(discord_server_defaults.get_defaults(prefix='+'))
+
+        print("Info: Discord bot initialized")
+
     await main_client.start(token=config.discord.token, reconnect=True)
+
 
 #-------------- Internal guild map update --------------
 async def register_server(guild: Guild):
-    with global_state.guild_server_map_lock:
-        global_state.guild_server_map[guild.id] =  Server(guild)
+    async with global_state.guild_server_map_lock:
+        global_state.guild_server_map[guild.id] = Server(guild)
         global_state.server_membership_count += 1
 
+
 async def remove_server(guild: Guild):
-    with global_state.guild_server_map_lock:
+    async with global_state.guild_server_map_lock:
         global_state.guild_server_map.pop(guild.id)
         global_state.server_membership_count -= 1
