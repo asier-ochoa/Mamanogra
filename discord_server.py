@@ -1,8 +1,9 @@
 import re
 from typing import Callable, Any, Awaitable, Iterable
 
-from discord import Guild, Message
+from discord import Guild, Message, VoiceState
 from discord_server_commands import Command
+from music_player import MusicPlayer
 
 
 class Server:
@@ -13,6 +14,7 @@ class Server:
     def __init__(self, guild: Guild):
         self.disc_guild = guild
         self.commands: list[Command] = []  # Match command using regex, delegate argument parsing to function
+        self.music_player = MusicPlayer(self.disc_guild)
 
     async def message_entrypoint(self, message: Message):
         try:
@@ -22,8 +24,14 @@ class Server:
                 match = re.fullmatch(c.regex, message.content)
                 if match:
                     await c.delegate(message, self, *[x for x in match.groups() if x is not None])
+                    return
         except Exception as exc:
             self.message_error_handler(message, exc)
+
+    def voice_state_entrypoint(self, before: VoiceState, after: VoiceState):
+        if before.channel is not None and after.channel is None:
+            print(f"Info: Bot forcefully disconnected from {before.channel.name}")
+            self.music_player.voice_client = None
 
     def register_commands(self, command: Iterable[Command]):
         self.commands.extend(command)

@@ -3,11 +3,11 @@ from typing import Union
 
 import discord_server_defaults
 from config import config
-from discord import Client, Intents, Message, Guild, Member, Reaction, User
+from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState
 
 import global_state
 from discord_server import Server
-from forwarders import forward_message_to_server
+from forwarders import forward_message_to_server, forward_voice_state_to_server
 
 
 async def event_setup(client: Client):
@@ -24,6 +24,10 @@ async def event_setup(client: Client):
     # @client.event
     # async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):
     #     pass forward_reaction_to_server()
+
+    @client.event
+    async def on_voice_state_update(member: Member, before: VoiceState, after: VoiceState):
+        await forward_voice_state_to_server(member, before, after)
 
     @client.event
     async def on_guild_join(guild: Guild):
@@ -46,6 +50,7 @@ async def setup():
 
     # Declare reference to client
     main_client = Client(intents=intent)
+    global_state.discord_client = main_client
 
     await event_setup(main_client)
 
@@ -65,7 +70,7 @@ async def setup():
     await main_client.start(token=config.discord.token, reconnect=True)
 
 
-#-------------- Internal guild map update --------------
+# -------------- Internal guild map update --------------
 async def register_server(guild: Guild):
     async with global_state.guild_server_map_lock:
         global_state.guild_server_map[guild.id] = Server(guild)

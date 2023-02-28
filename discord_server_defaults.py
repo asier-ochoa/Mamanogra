@@ -6,6 +6,7 @@ import global_state
 
 from discord_server import Server
 from discord_server_commands import Command
+from music_player import generate_youtube_song_id
 
 
 async def info_command(msg: Message, srv: Server):
@@ -27,7 +28,7 @@ async def info_command(msg: Message, srv: Server):
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
-    pass
+    await srv.music_player.play(msg.author, generate_youtube_song_id(yt_id))
 
 
 async def play_query_command(msg: Message, srv: Server, query: str = None):
@@ -46,7 +47,7 @@ async def play_playlist_command(msg: Message, srv: Server, yt_id: str = None):
 def get_defaults(prefix: str):
     commands = [
         (fr"\{prefix}(?:info|i)", info_command),
-        (fr"\{prefix}(?:p|play) https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d]*).+)|(?:youtu\.be\/([\w\d]+)))", play_url_command),
+        (fr"\{prefix}(?:p|play) https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
         (fr"\{prefix}(?:p|play) ([^|]+(?:\|(?:[^|]+))*)", play_query_command),
         (fr"\{prefix}(?:pl|playlist) https:\/\/www.youtube.com\/.*?list=([\w\d]*).*", play_playlist_command)
     ]
