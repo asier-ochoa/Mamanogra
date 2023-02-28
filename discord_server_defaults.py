@@ -6,7 +6,7 @@ import global_state
 
 from discord_server import Server
 from discord_server_commands import Command
-from music_player import generate_youtube_song_id
+from music_player import generate_youtube_song
 
 
 async def info_command(msg: Message, srv: Server):
@@ -28,15 +28,18 @@ async def info_command(msg: Message, srv: Server):
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
-    await srv.music_player.play(msg.author, generate_youtube_song_id(yt_id))
+    await srv.music_player.play(msg.author, generate_youtube_song(yt_id))
 
 
 async def play_query_command(msg: Message, srv: Server, query: str = None):
     queries = query.split('|')
     if len(queries) == 1:
-        print("Info: Single q")
+        print(f"Info: {msg.author.name}#{msg.author.discriminator} playing single query \"{query}\"")
+        await srv.music_player.play(msg.author, generate_youtube_song(f"ytsearch:{queries[0]}"))
     else:
-        print("Info: Multiple q")
+        print(f"Info: {msg.author.name}#{msg.author.discriminator} playing multi query \"{query}\"")
+        for q in queries:
+            await srv.music_player.play(msg.author, generate_youtube_song(f"ytsearch:{q}"))
     pass
 
 

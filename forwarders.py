@@ -19,6 +19,8 @@ async def forward_voice_state_to_server(member: Member, before: VoiceState, afte
         if member == global_state.discord_client.user:
             if global_state.guild_server_map.get(member.guild.id) is not None:
                 server: Server = global_state.guild_server_map[member.guild.id]
+            else:
+                return
         else:
             return
     await server.voice_state_entrypoint(before, after)

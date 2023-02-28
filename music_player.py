@@ -46,13 +46,15 @@ class MusicPlayer:
                 print(f"Error: Exception received while playing a song. Details: {error}")
                 return
             player.current_index += 1
-            if len(player.voice_client.channel.members) > 1:
-                # Play next song in the queue
-                global_state.discord_client.loop.create_task(
-                    player.play(
-                        player.queue[player.current_index].requester
-                    )
-                )
+            if player.voice_client is not None:
+                if len(player.voice_client.channel.members) > 1:
+                    # Play next song in the queue
+                    if player.current_index < len(player.queue):
+                        global_state.discord_client.loop.create_task(
+                            player.play(
+                                player.queue[player.current_index].requester
+                            )
+                        )
         return callback
 
     async def play(self, caller: Union[Member, User], source_func: Optional[Callable[[], FFmpegPCMAudio]] = None):
@@ -68,9 +70,9 @@ class MusicPlayer:
             self.voice_client.play(self.queue[self.current_index].source_func(), after=self.finishing_callback())
 
     async def connect_to_channel(self, channel: VoiceChannel):
-        print(f"Info: Attempting to connect to {channel.name} in {channel.guild.name}")
         async with self.voice_client_lock:
             if self.voice_client is None:
+                print(f"Info: Attempting to connect to {channel.name} in {channel.guild.name}")
                 try:
                     self.voice_client: VoiceClient = await channel.connect()
                 except ClientException:
@@ -80,7 +82,7 @@ class MusicPlayer:
 
 
 # Use factory pattern to embed different types of playable audio as a function
-def generate_youtube_song_id(yt_id: str, seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
+def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
     def youtube_song(i_yt_id=yt_id, i_seek=seek):  # Default params for early binding
         ffmpeg_options = deepcopy(FFMPEG_YT_OPTIONS)
         # Add seeking if requested
@@ -96,6 +98,8 @@ def generate_youtube_song_id(yt_id: str, seek: Optional[int] = None) -> Callable
         yt_query = YoutubeDL(
             {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
         ).extract_info(i_yt_id, download=False)
+        if i_yt_id.startswith("ytsearch:"):
+            yt_query = yt_query['entries'][0]
         audio_format: str = yt_query['format_id']
         audio_url = [
             x for x in yt_query['formats']
