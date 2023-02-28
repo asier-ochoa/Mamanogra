@@ -67,6 +67,11 @@ class MusicPlayer:
                 self.queue.append(Song(source_func, caller))
         if not self.voice_client.is_playing():
             self.queue[self.current_index].time_played = datetime.now()
+            played_ago = self.queue[self.current_index].time_played - self.queue[self.current_index].time_requested
+            print("".join([
+                f"Info: playing song requested by {caller.name}#{caller.discriminator}",
+                f" {played_ago.__str__()} ago"
+            ]))
             self.voice_client.play(self.queue[self.current_index].source_func(), after=self.finishing_callback())
 
     async def connect_to_channel(self, channel: VoiceChannel):
