@@ -22,9 +22,14 @@ class RepeatType(Enum):
 class Song:
     """
     POD-like class to gather song data
+
+    source_func must have these arguments with a default value in order to provide data about the song:
+        - title: str
+        - duration: int <seconds>
+        - thumbnail: str <url to image>
     """
     def __init__(self, source_func: Callable[[], FFmpegPCMAudio], requester: Member):
-        self.source_func = source_func
+        self.source_func = source_func  # Replace by an interface to a class instead of function
         self.requester = requester
         self.time_requested: datetime = datetime.now()
         self.time_played: Union[datetime, None] = None
@@ -57,6 +62,41 @@ class MusicPlayer:
                         )
         return callback
 
+    def print_queue(self) -> list[str]:
+        ret, now = [], datetime.now()
+        duration_integrity = True  # Turns false if any of the songs doesn't have duration
+        summed_duration = 0
+        for i, s in enumerate(self.queue):
+            args = {
+                k: v for k, v
+                in zip(
+                    [
+                        x for i, x in enumerate(s.source_func.__code__.co_varnames)
+                        if i >= s.source_func.__code__.co_argcount - len(s.source_func.__defaults__)
+                    ],
+                    s.source_func.__defaults__
+                )
+            }
+            ret.append(
+                "".join([
+                    f"{i + 1}: {args.get('title', '<No Title>')[:40]}",
+                    "" if len(args.get('title', '<No Title>')) < 40 else "...",
+                    f" - {args['duration'] // 60:02}:{args['duration'] % 60:02}"
+                    if duration_integrity and 'duration' in args else
+                    " - <No Duration>",
+                    f" -> (est. {summed_duration // 60:02}:{summed_duration % 60:02})"
+                    if duration_integrity and 'duration' in args and i > self.current_index else
+                    f" -> (est. N/A)" if i > self.current_index else "",
+                    " ---Playing---" if i == self.current_index else ""
+                ])
+            )
+            if 'duration' not in args:
+                duration_integrity = False
+            if duration_integrity and i >= self.current_index:
+                summed_duration += args['duration']
+
+        return ret
+
     async def play(self, caller: Union[Member, User], source_func: Optional[Callable[[], FFmpegPCMAudio]] = None):
         # Connect to a voice channel if not connected
         await self.connect_to_channel(caller.voice.channel)
@@ -66,13 +106,27 @@ class MusicPlayer:
             if source_func is not None:
                 self.queue.append(Song(source_func, caller))
         if not self.voice_client.is_playing():
-            self.queue[self.current_index].time_played = datetime.now()
-            played_ago = self.queue[self.current_index].time_played - self.queue[self.current_index].time_requested
+            song = self.queue[self.current_index]
+            song.time_played = datetime.now()
+            requested_ago = song.time_played - song.time_requested
+
+            song_args = {
+                k: v for k, v
+                in zip(
+                    [
+                        x for i, x in enumerate(song.source_func.__code__.co_varnames)
+                        if i >= song.source_func.__code__.co_argcount - len(song.source_func.__defaults__)
+                    ],
+                    song.source_func.__defaults__
+                )
+            }
+
             print("".join([
-                f"Info: playing song requested by {caller.name}#{caller.discriminator}",
-                f" {played_ago.__str__()} ago"
+                f"Info: playing \"{song_args.get('title')}\" requested",
+                f" by {caller.name}#{caller.discriminator}",
+                f" {requested_ago.__str__()} ago"
             ]))
-            self.voice_client.play(self.queue[self.current_index].source_func(), after=self.finishing_callback())
+            self.voice_client.play(song.source_func(), after=self.finishing_callback())
 
     async def connect_to_channel(self, channel: VoiceChannel):
         async with self.voice_client_lock:
@@ -87,8 +141,15 @@ class MusicPlayer:
 
 
 # Use factory pattern to embed different types of playable audio as a function
-def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
-    def youtube_song(i_yt_id=yt_id, i_seek=seek):  # Default params for early binding
+async def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
+    yt_query = YoutubeDL(
+        {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
+    ).extract_info(yt_id, download=False)
+    if yt_id.startswith("ytsearch:"):
+        yt_query = yt_query['entries'][0]
+    e_title, e_duration, e_thumbnail = yt_query.get('title'), yt_query.get('duration'), yt_query.get('thumbnail')
+
+    def youtube_song(i_yt_id=yt_id, i_seek=seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail):  # Default params for early binding
         ffmpeg_options = deepcopy(FFMPEG_YT_OPTIONS)
         # Add seeking if requested
         if i_seek is not None:
@@ -113,8 +174,3 @@ def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Callable[[]
 
         return FFmpegPCMAudio(source=audio_url, **ffmpeg_options)
     return youtube_song
-
-
-
-
-
