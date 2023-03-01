@@ -28,19 +28,18 @@ async def info_command(msg: Message, srv: Server):
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
-    await srv.music_player.play(msg.author, generate_youtube_song(yt_id))
+    await srv.music_player.play(msg.author, await generate_youtube_song(yt_id))
 
 
 async def play_query_command(msg: Message, srv: Server, query: str = None):
     queries = query.split('|')
     if len(queries) == 1:
         print(f"Info: {msg.author.name}#{msg.author.discriminator} queuing single query \"{query}\"")
-        await srv.music_player.play(msg.author, generate_youtube_song(f"ytsearch:{queries[0]}"))
+        await srv.music_player.play(msg.author, await generate_youtube_song(f"ytsearch:{queries[0]}"))
     else:
         print(f"Info: {msg.author.name}#{msg.author.discriminator} queuing multi query \"{query}\"")
         for q in queries:
-            await srv.music_player.play(msg.author, generate_youtube_song(f"ytsearch:{q}"))
-    pass
+            await srv.music_player.play(msg.author, await generate_youtube_song(f"ytsearch:{q}"))
 
 
 async def play_playlist_command(msg: Message, srv: Server, yt_id: str = None):
@@ -54,12 +53,25 @@ async def skip_command(msg: Message, srv: Server):
     print(f"Info: {msg.author.name}#{msg.author.discriminator} skipped forward in {srv.disc_guild.name}")
     srv.music_player.voice_client.stop()
 
+
+async def queue_command(msg: Message, srv: Server):
+    await msg.channel.send(
+        "".join([
+            "```\n",
+            "----Queue----\n\n",
+            "\n".join(srv.music_player.print_queue()),
+            "\n```"
+        ])
+    )
+
+
 def get_defaults(prefix: str):
     commands = [
         (fr"\{prefix}(?:info|i)", info_command),
-        (fr"\{prefix}(?:p|play) https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
-        (fr"\{prefix}(?:p|play) ([^|]+(?:\|(?:[^|]+))*)", play_query_command),
+        (fr"\{prefix}(?:p|play) https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
+        (fr"\{prefix}(?:p|play) ([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
         (fr"\{prefix}(?:pl|playlist) https:\/\/www.youtube.com\/.*?list=([\w\d]*).*", play_playlist_command),
-        (fr"\{prefix}(?:s|skip)", skip_command)
+        (fr"\{prefix}(?:s|skip)", skip_command),
+        (fr"\{prefix}(?:q|queue)", queue_command)
     ]
     return [Command(*x) for x in commands]
