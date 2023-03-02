@@ -1,14 +1,14 @@
 import asyncio
 from copy import deepcopy
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from enum import Enum
-from functools import wraps
-from typing import Union, Callable, Optional, Any
+from typing import Union, Callable, Optional
 
 from discord import FFmpegPCMAudio, Guild, User, Member, VoiceClient, ClientException, VoiceChannel
 from yt_dlp import YoutubeDL
 
 import global_state
+import utils
 
 FFMPEG_YT_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
@@ -44,12 +44,23 @@ class MusicPlayer:
         self.queue: list[Song] = []
         self.current_index: int = 0  # Represents current song queue index
 
+        self.seek_flag = False
+
     # Returns a function with bound variables to serve as callback
     def finishing_callback(self):
-        def callback(error: Optional[Exception], player: MusicPlayer = self):
+        def callback(error: Optional[Exception], last_song: Song = self.queue[self.current_index], player: MusicPlayer = self):
             if error is not None:
                 print(f"Error: Exception received while playing a song. Details: {error}")
                 return
+
+            # Remove any seeking left over
+            args = utils.get_function_default_args(last_song.source_func)
+            if not player.seek_flag and 'seek' in args:
+                args['seek'] = None
+                last_song.source_func.__defaults__ = tuple(args.values())
+            else:
+                player.seek_flag = False
+
             player.current_index += 1
             if player.voice_client is not None:
                 if len(player.voice_client.channel.members) > 1:
@@ -67,19 +78,10 @@ class MusicPlayer:
         duration_integrity = True  # Turns false if any of the songs doesn't have duration
         summed_duration = 0
         for i, s in enumerate(self.queue):
-            args = {
-                k: v for k, v
-                in zip(
-                    [
-                        x for i, x in enumerate(s.source_func.__code__.co_varnames)
-                        if i >= s.source_func.__code__.co_argcount - len(s.source_func.__defaults__)
-                    ],
-                    s.source_func.__defaults__
-                )
-            }
+            args = utils.get_function_default_args(s.source_func)
             ret.append(
                 "".join([
-                    f"{i + 1}: {args.get('title', '<No Title>')[:40]}",
+                    f"{i - self.current_index}: {args.get('title', '<No Title>')[:40]}",
                     "" if len(args.get('title', '<No Title>')) < 40 else "...",
                     f" - {args['duration'] // 60:02}:{args['duration'] % 60:02}"
                     if duration_integrity and 'duration' in args else
@@ -110,21 +112,11 @@ class MusicPlayer:
             song.time_played = datetime.now()
             requested_ago = song.time_played - song.time_requested
 
-            song_args = {
-                k: v for k, v
-                in zip(
-                    [
-                        x for i, x in enumerate(song.source_func.__code__.co_varnames)
-                        if i >= song.source_func.__code__.co_argcount - len(song.source_func.__defaults__)
-                    ],
-                    song.source_func.__defaults__
-                )
-            }
-
+            song_args = utils.get_function_default_args(song.source_func)
             print("".join([
                 f"Info: playing \"{song_args.get('title')}\" requested",
                 f" by {caller.name}#{caller.discriminator}",
-                f" {requested_ago.__str__()} ago"
+                f" {requested_ago.__str__().split('.')[0]} ago"
             ]))
             self.voice_client.play(song.source_func(), after=self.finishing_callback())
 
@@ -141,7 +133,7 @@ class MusicPlayer:
 
 
 # Use factory pattern to embed different types of playable audio as a function
-async def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
+async def generate_youtube_song(yt_id: str, e_seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
     yt_query = YoutubeDL(
         {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
     ).extract_info(yt_id, download=False)
@@ -149,11 +141,11 @@ async def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Calla
         yt_query = yt_query['entries'][0]
     e_title, e_duration, e_thumbnail = yt_query.get('title'), yt_query.get('duration'), yt_query.get('thumbnail')
 
-    def youtube_song(i_yt_id=yt_id, i_seek=seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail):  # Default params for early binding
+    def youtube_song(i_yt_id=yt_id, seek=e_seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail):  # Default params for early binding
         ffmpeg_options = deepcopy(FFMPEG_YT_OPTIONS)
         # Add seeking if requested
-        if i_seek is not None:
-            seek_time = timedelta(seconds=i_seek)
+        if seek is not None:
+            seek_time = timedelta(seconds=seek)
             ffmpeg_options['before_options'] += ''.join([
                 ' -ss ',
                 f'{seek_time.seconds // 3600}:',
@@ -172,5 +164,6 @@ async def generate_youtube_song(yt_id: str, seek: Optional[int] = None) -> Calla
             if x['format_id'] == audio_format
         ][0]['url']
 
+        # Make it so this function returns the audio_url instead of the FFmpegPCMAudio to allow for faster seeking
         return FFmpegPCMAudio(source=audio_url, **ffmpeg_options)
     return youtube_song
