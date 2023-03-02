@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from discord import Message, HTTPException, Forbidden
+
+import utils
 from config import config
 import global_state
 
@@ -46,11 +48,18 @@ async def play_playlist_command(msg: Message, srv: Server, yt_id: str = None):
     pass
 
 
-async def skip_command(msg: Message, srv: Server):
+async def skip_command(msg: Message, srv: Server, n_times_str: str = '1'):
+    n_times = int(n_times_str)
     async with srv.music_player.voice_client_lock:
         if srv.music_player.voice_client is None:
             return
-    print(f"Info: {msg.author.name}#{msg.author.discriminator} skipped forward in {srv.disc_guild.name}")
+    print(f"Info: {msg.author.name}#{msg.author.discriminator} skipped {n_times} song(s) in {srv.disc_guild.name}")
+    if 0 <= srv.music_player.current_index + n_times < len(srv.music_player.queue):
+        async with srv.music_player.voice_client_lock:
+            srv.music_player.current_index += n_times - 1
+    else:
+        return
+
     srv.music_player.voice_client.stop()
 
 
@@ -65,13 +74,40 @@ async def queue_command(msg: Message, srv: Server):
     )
 
 
+async def seek_command(msg: Message, srv: Server, timestamp: str):
+    split_stamp = [int(x) for x in timestamp.split(':')]
+    if not all(x < 60 for x in split_stamp):
+        return
+    if len(split_stamp) == 2:
+        m, s = split_stamp
+        sec_stamp = m * 60 + s
+    else:
+        h, m, s = split_stamp
+        sec_stamp = h * 3600 + m * 60 + s
+
+    # Modify current function's default args to include seeking
+    cur_song_func = srv.music_player.queue[srv.music_player.current_index].source_func
+    song_args = utils.get_function_default_args(cur_song_func)
+    if 'seek' not in song_args:
+        return
+    song_args['seek'] = sec_stamp
+    async with srv.music_player.voice_client_lock:
+        cur_song_func.__defaults__ = tuple(song_args.values())
+        srv.music_player.seek_flag = True
+        srv.music_player.current_index -= 1
+
+    print(f"Info: {msg.author.name}#{msg.author.discriminator} seeked to {timestamp}")
+    srv.music_player.voice_client.stop()
+
+
 def get_defaults(prefix: str):
     commands = [
-        (fr"\{prefix}(?:info|i)", info_command),
-        (fr"\{prefix}(?:p|play) https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
-        (fr"\{prefix}(?:p|play) ([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
-        (fr"\{prefix}(?:pl|playlist) https:\/\/www.youtube.com\/.*?list=([\w\d]*).*", play_playlist_command),
-        (fr"\{prefix}(?:s|skip)", skip_command),
-        (fr"\{prefix}(?:q|queue)", queue_command)
+        (fr"\{prefix}(?:info$|i$)", info_command),
+        (fr"\{prefix}(?:p |play )https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
+        (fr"\{prefix}(?:p |play )([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
+        (fr"\{prefix}(?:pl |playlist )https:\/\/www\.youtube\.com\/.*?list=([\w\d]*).*", play_playlist_command),
+        (fr"\{prefix}(?:s |skip |s$|skip$)(?:(?!0)(?!-0)(-?\d+))?", skip_command),
+        (fr"\{prefix}(?:q$|queue$)", queue_command),
+        (fr"\{prefix}seek (\d?\d:\d\d:\d\d$|\d?\d:\d\d$)", seek_command)
     ]
     return [Command(*x) for x in commands]
