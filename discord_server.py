@@ -31,6 +31,7 @@ class Server:
     async def voice_state_entrypoint(self, before: VoiceState, after: VoiceState):
         if before.channel is not None and after.channel is None:
             print(f"Info: Bot forcefully disconnected from {before.channel.name}")
+            await self.music_player.voice_client.disconnect(force=True)
             self.music_player.voice_client = None
 
     def register_commands(self, command: Iterable[Command]):

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from discord import Message, HTTPException, Forbidden
+from yt_dlp import YoutubeDL
 
 import utils
 from config import config
@@ -45,7 +46,25 @@ async def play_query_command(msg: Message, srv: Server, query: str = None):
 
 
 async def play_playlist_command(msg: Message, srv: Server, yt_id: str = None):
-    pass
+    yt_query = YoutubeDL({
+        'format': 'bestaudio/best',
+        'quiet': True,
+        'extract_flat': True,
+        'playlist_items': '1:10'
+    }).extract_info(
+        msg.content.split(' ')[-1]
+    )
+
+    if yt_query['_type'] != 'playlist':
+        print(f"Error: yt-dlp extraction using \"{msg.content.split(' ')[-1]}\" was not of playlist type")
+        return
+
+    print(f"Info: Queuing playlist \"{yt_query['title']}\" requested by {msg.author.name}#{msg.author.discriminator} using \"{msg.content.split(' ')[-1]}\"")
+    for e in yt_query['entries']:
+        await srv.music_player.play(
+            msg.author,
+            await generate_youtube_song(e['id'])
+        )
 
 
 async def skip_command(msg: Message, srv: Server, n_times_str: str = '1'):
