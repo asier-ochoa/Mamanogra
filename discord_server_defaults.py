@@ -31,6 +31,7 @@ async def info_command(msg: Message, srv: Server):
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
+    print(f"Info: {msg.author.name}#{msg.author.discriminator} queued youtube ID \"{yt_id}\"")
     await srv.music_player.play(msg.author, await generate_youtube_song(yt_id))
 
 
@@ -77,7 +78,10 @@ async def skip_command(msg: Message, srv: Server, n_times_str: str = '1'):
         async with srv.music_player.voice_client_lock:
             srv.music_player.current_index += n_times - 1
     else:
-        return
+        if srv.music_player.current_index == len(srv.music_player.queue) - 1 and n_times == 1:
+            pass  # If trying to skip last song, allow to go out of bounds
+        else:
+            return
 
     srv.music_player.voice_client.stop()
 
