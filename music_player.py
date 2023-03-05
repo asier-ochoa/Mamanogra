@@ -88,7 +88,8 @@ class MusicPlayer:
                 "".join([
                     f"{i - self.current_index}: {args.get('title', '<No Title>')[:40]}",
                     "" if len(args.get('title', '<No Title>')) < 40 else "...",
-                    f" - {args['duration'] // 60:02}:{args['duration'] % 60:02}"
+                    f" - {((now - s.time_played).seconds + (args['seek'] if args.get('seek') is not None else 0)) // 60:02}:{((now - s.time_played).seconds + (args['seek'] if args.get('seek') is not None else 0)) % 60:02}/" if 'duration' in args and i == self.current_index else " - ",
+                    f"{args['duration'] // 60:02}:{args['duration'] % 60:02}"
                     if duration_integrity and 'duration' in args else
                     " - <No Duration>",
                     f" -> (est. {summed_duration // 60:02}:{summed_duration % 60:02})"
@@ -99,8 +100,10 @@ class MusicPlayer:
             )
             if 'duration' not in args:
                 duration_integrity = False
-            if duration_integrity and i >= self.current_index:
+            if duration_integrity and i > self.current_index:
                 summed_duration += args['duration']
+            if duration_integrity and i == self.current_index:
+                summed_duration += (args['duration'] - (now - s.time_played).seconds - (args['seek'] if args.get('seek') is not None else 0))
 
         return ret
 
@@ -114,6 +117,8 @@ class MusicPlayer:
                 self.queue.append(Song(source_func, caller))
         if not self.voice_client.is_playing():
             song = self.queue[self.current_index]
+
+            self.voice_client.play(song.source_func(), after=self.finishing_callback())
             song.time_played = datetime.now()
             requested_ago = song.time_played - song.time_requested
 
@@ -123,7 +128,6 @@ class MusicPlayer:
                 f" by {caller.name}#{caller.discriminator}",
                 f" {requested_ago.__str__().split('.')[0]} ago"
             ]))
-            self.voice_client.play(song.source_func(), after=self.finishing_callback())
 
     async def connect_to_channel(self, channel: VoiceChannel):
         async with self.voice_client_lock:
