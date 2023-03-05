@@ -45,6 +45,8 @@ class MusicPlayer:
         self.current_index: int = 0  # Represents current song queue index
 
         self.seek_flag = False
+        self.disconnect_flag = False
+        self.force_disconnect_flag = False
 
     # Returns a function with bound variables to serve as callback
     def finishing_callback(self):
@@ -61,16 +63,19 @@ class MusicPlayer:
             else:
                 player.seek_flag = False
 
-            player.current_index += 1
-            if player.voice_client is not None:
-                if len(player.voice_client.channel.members) > 1:
-                    # Play next song in the queue
-                    if player.current_index < len(player.queue):
-                        global_state.discord_client.loop.create_task(
-                            player.play(
-                                player.queue[player.current_index].requester
+            if not player.force_disconnect_flag:
+                player.current_index += 1
+                if player.voice_client is not None:
+                    if len(player.voice_client.channel.members) > 1:
+                        # Play next song in the queue
+                        if player.current_index < len(player.queue):
+                            global_state.discord_client.loop.create_task(
+                                player.play(
+                                    player.queue[player.current_index].requester
+                                )
                             )
-                        )
+            else:
+                player.force_disconnect_flag = False
         return callback
 
     def print_queue(self) -> list[str]:
