@@ -29,8 +29,9 @@ class Server:
             self.message_error_handler(message, exc)
 
     async def voice_state_entrypoint(self, before: VoiceState, after: VoiceState):
-        if before.channel is not None and after.channel is None:
+        if before.channel is not None and after.channel is None and not self.music_player.disconnect_flag:
             print(f"Info: Bot forcefully disconnected from {before.channel.name}")
+            self.music_player.force_disconnect_flag = True
             await self.music_player.voice_client.disconnect(force=True)
             self.music_player.voice_client = None
 
