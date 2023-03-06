@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from discord import Message, HTTPException, Forbidden
 from yt_dlp import YoutubeDL
@@ -9,7 +10,7 @@ import global_state
 
 from discord_server import Server
 from discord_server_commands import Command
-from music_player import generate_youtube_song
+from music_player import generate_youtube_song, generate_url_song
 
 
 async def info_command(msg: Message, srv: Server):
@@ -123,9 +124,21 @@ async def seek_command(msg: Message, srv: Server, timestamp: str):
     srv.music_player.voice_client.stop()
 
 
+async def play_file_command(msg: Message, srv: Server, url: Optional[str] = None):
+    i_url = url
+    if len(msg.attachments) > 0:
+        i_url = msg.attachments[0].url
+    if i_url is None:
+        return
+
+    print(f"Info: {msg.author.name}#{msg.author.discriminator} queued audio url \"{url}\" in {srv.disc_guild.name}")
+    await srv.music_player.play(msg.author, await generate_url_song(i_url))
+
+
 def get_defaults(prefix: str):
     commands = [
         (fr"\{prefix}(?:info$|i$)", info_command),
+        (fr"\{prefix}(?:pe |play embed |pe$|play embed$)(.+\.(?:mp3$|ogg$|wav$|mp4$))?", play_file_command),
         (fr"\{prefix}(?:p |play )https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
         (fr"\{prefix}(?:p |play )([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
         (fr"\{prefix}(?:pl |playlist )https:\/\/www\.youtube\.com\/.*?list=([\w\d]*).*", play_playlist_command),
