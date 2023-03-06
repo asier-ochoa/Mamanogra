@@ -48,6 +48,10 @@ class MusicPlayer:
         self.disconnect_flag = False
         self.force_disconnect_flag = False
 
+        self.cleanup_task = global_state.discord_client.loop.create_task(
+            self.cleanup_coro(120)
+        )
+
     # Returns a function with bound variables to serve as callback
     def finishing_callback(self):
         def callback(error: Optional[Exception], last_song: Song = self.queue[self.current_index], player: MusicPlayer = self):
@@ -63,7 +67,7 @@ class MusicPlayer:
             else:
                 player.seek_flag = False
 
-            if not player.force_disconnect_flag:
+            if not player.force_disconnect_flag and not player.disconnect_flag:
                 player.current_index += 1
                 if player.voice_client is not None:
                     if len(player.voice_client.channel.members) > 1:
@@ -139,6 +143,27 @@ class MusicPlayer:
                     print(f"Error: Already connected to channel {channel.name} in {self.guild.name}. Syncing state")
                     await self.guild.voice_client.disconnect(force=True)
                     self.voice_client: VoiceClient = await channel.connect()
+
+    async def cleanup_coro(self, interval: int):
+        while True:
+            await asyncio.sleep(interval)
+
+            # Cleanup song queue
+            if self.current_index > 4:
+                async with self.voice_client_lock:
+                    self.queue = self.queue[self.current_index - 4:]
+                    last_index = self.current_index
+                    self.current_index = 4
+                print(f"Cleanup Info: Removed {last_index - self.current_index} songs from {self.guild.name}'s queue")
+
+            # Cleanup by disconnecting if no one in channel
+            if self.voice_client is not None and (len(self.voice_client.channel.members) <= 1 or not self.voice_client.is_playing()):
+                channel_name: str = self.voice_client.channel.name
+                async with self.voice_client_lock:
+                    self.disconnect_flag = True
+                    await self.voice_client.disconnect()
+                    self.voice_client: Optional[VoiceClient] = None
+                print(f"Cleanup Info: Disconnected voice client from \"{channel_name}\" in {self.guild.name}")
 
 
 # Use factory pattern to embed different types of playable audio as a function

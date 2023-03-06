@@ -74,11 +74,11 @@ async def skip_command(msg: Message, srv: Server, n_times_str: str = '1'):
         if srv.music_player.voice_client is None:
             return
     print(f"Info: {msg.author.name}#{msg.author.discriminator} skipped {n_times} song(s) in {srv.disc_guild.name}")
-    if 0 <= srv.music_player.current_index + n_times < len(srv.music_player.queue):
+    if 0 <= srv.music_player.current_index + n_times < len(srv.music_player.queue) and srv.music_player.voice_client.is_playing():
         async with srv.music_player.voice_client_lock:
             srv.music_player.current_index += n_times - 1
     else:
-        if srv.music_player.current_index == len(srv.music_player.queue) - 1 and n_times == 1:
+        if srv.music_player.current_index == len(srv.music_player.queue) - 1 and n_times == 1 and srv.music_player.voice_client.is_playing():
             pass  # If trying to skip last song, allow to go out of bounds
         else:
             return
