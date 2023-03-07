@@ -49,7 +49,7 @@ class MusicPlayer:
         self.force_disconnect_flag = False
 
         self.cleanup_task = global_state.discord_client.loop.create_task(
-            self.cleanup_coro(120)
+            self.cleanup_coro(30)
         )
 
     # Returns a function with bound variables to serve as callback
@@ -157,7 +157,7 @@ class MusicPlayer:
                     self.current_index = 4
                 print(f"Cleanup Info: Removed {last_index - self.current_index} songs from {self.guild.name}'s queue")
 
-            # Cleanup by disconnecting if no one in channel
+            # Cleanup by disconnecting if no one in channel or bot is not playing music
             if self.voice_client is not None and (len(self.voice_client.channel.members) <= 1 or not self.voice_client.is_playing()):
                 channel_name: str = self.voice_client.channel.name
                 async with self.voice_client_lock:
@@ -169,6 +169,7 @@ class MusicPlayer:
                     self.finishing_callback()(None)
                     await self.voice_client.disconnect()
 
+                    self.current_index = len(self.queue)
                     self.voice_client: Optional[VoiceClient] = None
                 print(f"Cleanup Info: Disconnected voice client from \"{channel_name}\" in {self.guild.name}")
 
