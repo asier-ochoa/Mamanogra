@@ -54,18 +54,19 @@ class MusicPlayer:
 
     # Returns a function with bound variables to serve as callback
     def finishing_callback(self):
-        def callback(error: Optional[Exception], last_song: Song = self.queue[self.current_index], player: MusicPlayer = self):
+        def callback(error: Optional[Exception], last_song: Optional[Song] = self.queue[self.current_index] if self.current_index < len(self.queue) else None, player: MusicPlayer = self):
             if error is not None:
                 print(f"Error: Exception received while playing a song. Details: {error}")
                 return
 
             # Remove any seeking left over
-            args = utils.get_function_default_args(last_song.source_func)
-            if not player.seek_flag and 'seek' in args:
-                args['seek'] = None
-                last_song.source_func.__defaults__ = tuple(args.values())
-            else:
-                player.seek_flag = False
+            if last_song is not None:
+                args = utils.get_function_default_args(last_song.source_func)
+                if not player.seek_flag and 'seek' in args:
+                    args['seek'] = None
+                    last_song.source_func.__defaults__ = tuple(args.values())
+                else:
+                    player.seek_flag = False
 
             if not player.force_disconnect_flag and not player.disconnect_flag:
                 player.current_index += 1
@@ -161,7 +162,13 @@ class MusicPlayer:
                 channel_name: str = self.voice_client.channel.name
                 async with self.voice_client_lock:
                     self.disconnect_flag = True
+
+                    # Have to do this hacky shit since for some godforsaken reason
+                    # calling disconnect doesn't trigger the finishing callback.
+                    # This is fucking stupid.
+                    self.finishing_callback()(None)
                     await self.voice_client.disconnect()
+
                     self.voice_client: Optional[VoiceClient] = None
                 print(f"Cleanup Info: Disconnected voice client from \"{channel_name}\" in {self.guild.name}")
 

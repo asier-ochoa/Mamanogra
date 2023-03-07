@@ -34,6 +34,8 @@ class Server:
             self.music_player.force_disconnect_flag = True
             await self.music_player.voice_client.disconnect(force=True)
             self.music_player.voice_client = None
+        if self.music_player.disconnect_flag:
+            self.music_player.disconnect_flag = False
 
     def register_commands(self, command: Iterable[Command]):
         self.commands.extend(command)
