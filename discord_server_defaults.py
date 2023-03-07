@@ -1,3 +1,5 @@
+import random
+from copy import copy
 from datetime import datetime
 from typing import Optional
 
@@ -10,7 +12,7 @@ import global_state
 
 from discord_server import Server
 from discord_server_commands import Command
-from music_player import generate_youtube_song, generate_url_song
+from song_generators import generate_youtube_song, generate_url_song
 
 
 async def info_command(msg: Message, srv: Server):
@@ -124,6 +126,16 @@ async def seek_command(msg: Message, srv: Server, timestamp: str):
     srv.music_player.voice_client.stop()
 
 
+async def shuffle_command(msg: Message, srv: Server):
+    cur_idx = srv.music_player.current_index
+    if cur_idx < len(srv.music_player.queue):
+        async with srv.music_player.voice_client_lock:
+            queue_slice = srv.music_player.queue[cur_idx + 1:]
+            random.shuffle(queue_slice)
+            srv.music_player.queue[cur_idx + 1:] = queue_slice
+        print(f"Info: {msg.author.name}#{msg.author.discriminator} shuffled the queue in {srv.disc_guild.name}")
+
+
 async def play_file_command(msg: Message, srv: Server, url: Optional[str] = None):
     i_url = url
     if len(msg.attachments) > 0:
@@ -143,6 +155,7 @@ def get_defaults(prefix: str):
         (fr"\{prefix}(?:p |play )([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
         (fr"\{prefix}(?:pl |playlist )https:\/\/www\.youtube\.com\/.*?list=([\w\d]*).*", play_playlist_command),
         (fr"\{prefix}(?:s |skip |s$|skip$)(?:(?!0)(?!-0)(-?\d+))?", skip_command),
+        (fr"\{prefix}(?:sh$|shuffle$)", shuffle_command),
         (fr"\{prefix}(?:q$|queue$)", queue_command),
         (fr"\{prefix}seek (\d?\d:\d\d:\d\d$|\d?\d:\d\d$)", seek_command)
     ]
