@@ -4,7 +4,7 @@ import database.schema as schema
 from music.player import Song
 import sqlite3
 from os.path import isfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import remove
 
 class DB:
@@ -229,9 +229,40 @@ class DB:
             """
             INSERT INTO song_listener (listener_user, song)
             VALUES (?, ?)
-            """,
-            user_ids
+            """, user_ids
         )
+
+    def register_new_web_key(self, user_id: int, key: bytes, token: str) -> bool:
+        """
+        Returns false if no data was inserted
+        """
+        assert self.con is not None and self.cur is not None
+
+        user_fk = self.cur.execute(
+            """
+            SELECT id from users
+            where discord_id = ? limit 1
+            """, [user_id]
+        ).fetchone()[0]
+
+        key_search = self.cur.execute(
+            """
+            SELECT key_validated from webui_session_keys
+            WHERE discord_user = ? limit 1
+            """, [user_fk]
+        ).fetchone()
+        if key_search is not None:
+            return False
+
+        token_exp_date = datetime.now() + timedelta(minutes=5)
+        key_exp_date = datetime.now() + timedelta(days=90)
+        self.cur.execute(
+            """
+            INSERT into webui_session_keys (discord_user, key, key_expiration_date, request_token, request_token_expiration_date, key_validated)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_fk, key, key_exp_date, token, token_exp_date, 0)
+        )
+        return True
 
 
 database = DB()
