@@ -26,8 +26,17 @@ async def info_command(msg: Message, srv: Server):
         print(f"Error: HTTPException while trying to write info message. Details: {exc.response}")
 
 
+async def webui_command(msg: Message, srv: Server):
+    try:
+        await srv.generate_web_key(msg.author)
+    except Forbidden as exc:
+        print(f"Error: Couldn't send key registration url to {msg.author.name}#{msg.author.discriminator}. Details: {exc.response}")
+        await msg.channel.send(f"{msg.author.mention}\n```\nCouldn't send the webui URL through your DM. Check your privacy settings and try again.\n```")
+
+
 def get_global_defaults(prefix: str):
     commands = [
-        (fr"\{prefix}(?:info$|i$)", info_command)
+        (fr"\{prefix}(?:info$|i$)", info_command),
+        (fr"\{prefix}(?:w$|webui$)", webui_command)
     ]
     return [Command(*x) for x in commands]

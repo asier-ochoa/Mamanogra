@@ -70,4 +70,18 @@ def generate() -> str:
     );
     """
 
+    webui_session_keys = """
+    CREATE TABLE "webui_session_keys" (
+        "id" INTEGER not null UNIQUE,
+        "discord_user" INTEGER not null UNIQUE,
+        "key" BLOB not null,
+        "key_expiration_date" TEXT,
+        "request_token" TEXT not null,
+        "request_token_expiration_date" TEXT not null,
+        "key_validated" INTEGER default 0,
+        PRIMARY KEY ("id" AUTOINCREMENT),
+        FOREIGN KEY ("discord_user") REFERENCES "users"("id")
+    );
+    """
+
     return "".join([v for v in locals().values()])

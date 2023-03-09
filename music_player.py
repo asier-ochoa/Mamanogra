@@ -128,7 +128,7 @@ class MusicPlayer:
             song_args = utils.get_function_default_args(song.source_func)
             print("".join([
                 f"Info: playing \"{song_args.get('title')}\" requested",
-                f" by {caller.name}#{caller.discriminator}",
+                f" by {caller.name}#{caller.discriminator} in {caller.guild.name}",
                 f" {requested_ago.__str__().split('.')[0]} ago"
             ]))
 

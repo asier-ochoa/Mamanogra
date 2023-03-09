@@ -63,10 +63,6 @@ async def setup():
 
         for g in main_client.guilds:
             await register_server(g)
-            with database:
-                database.register_users([(x.id, x.name) for x in g.members])
-                database.register_server(g.id, g.name, g.owner.id)
-                database.register_memberships(g.id, [m.id for m in g.members])
 
         for s in global_state.guild_server_map.values():
             s.register_commands(discord_default_global_commands.get_global_defaults(prefix='+'))
@@ -83,8 +79,8 @@ async def register_server(guild: Guild):
         global_state.guild_server_map[guild.id] = Server(guild)
         global_state.server_membership_count += 1
     with database:
-        database.register_server(guild.id, guild.name, guild.owner.id)
         database.register_users([(x.id, x.name) for x in guild.members])
+        database.register_server(guild.id, guild.name, guild.owner.id)
         database.register_memberships(guild.id, [m.id for m in guild.members])
     print(f"Info: Bot joined guild \"{guild.name}\"")
 
