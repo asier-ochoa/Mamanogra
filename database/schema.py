@@ -59,4 +59,15 @@ def generate() -> str:
     );
     """
 
+    song_listener_schema = """
+    CREATE TABLE "song_listener" (
+        "id" INTEGER not null UNIQUE,
+        "listener_user" INTEGER not null,
+        "song" INTEGER NOT NULL,
+        PRIMARY KEY("id" AUTOINCREMENT),
+        FOREIGN KEY("listener_user") REFERENCES "users"("id"),
+        FOREIGN KEY("song") REFERENCES "songs"("id")
+    );
+    """
+
     return "".join([v for v in locals().values()])

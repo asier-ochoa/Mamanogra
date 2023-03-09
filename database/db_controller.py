@@ -7,7 +7,6 @@ from os.path import isfile
 from datetime import datetime
 from os import remove
 
-
 class DB:
     db_file_name = 'savedata.db'
 
@@ -115,6 +114,7 @@ class DB:
             """
             , [server_fk, user_fk, datetime.now().isoformat(), song.yt_id, song.name, song.duration]
         )
+        return self.cur.lastrowid
 
     def log_command(self, command: str, user_discord_id: int, server_discord_id: int):
         assert self.con is not None and self.cur is not None
@@ -210,5 +210,28 @@ class DB:
             """
             , [server_fk, amount]
         )
+
+    def register_song_listeners(self, db_song_id: int, user_ids: tuple[int]):
+        assert self.con is not None and self.cur is not None
+
+        user_ids = [
+            (r[0], db_song_id) for r in
+            self.cur.execute(
+                """
+                SELECT id from users
+                WHERE discord_id in (
+                """ + ",".join(["?"] * len(user_ids)) + ")",
+                user_ids
+            ).fetchall()
+        ]
+
+        self.cur.executemany(
+            """
+            INSERT INTO song_listener (listener_user, song)
+            VALUES (?, ?)
+            """,
+            user_ids
+        )
+
 
 database = DB()
