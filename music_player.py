@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 from enum import Enum
 from typing import Union, Callable, Optional
+from database.db_controller import database
 
 from discord import FFmpegPCMAudio, Guild, User, Member, VoiceClient, ClientException, VoiceChannel
 
@@ -122,6 +123,7 @@ class MusicPlayer:
             self.voice_client.play(song.source_func(), after=self.finishing_callback())
             song.time_played = datetime.now()
             requested_ago = song.time_played - song.time_requested
+            await self.register_current_song_to_database()
 
             song_args = utils.get_function_default_args(song.source_func)
             print("".join([
@@ -140,6 +142,29 @@ class MusicPlayer:
                     print(f"Error: Already connected to channel {channel.name} in {self.guild.name}. Syncing state")
                     await self.guild.voice_client.disconnect(force=True)
                     self.voice_client: VoiceClient = await channel.connect()
+
+    async def register_current_song_to_database(self):
+        cur_song = self.queue[self.current_index]
+
+        class MockSong:
+            def __init__(self, yt_id, name, duration):
+                self.yt_id = yt_id
+                self.name = name
+                self.duration = duration
+
+        args = utils.get_function_default_args(cur_song.source_func)
+        if 'i_yt_id' in args:
+            with database:
+                database.register_song_listeners(
+                    database.register_song(
+                        MockSong(
+                            args['i_yt_id'],
+                            args['title'],
+                            args['duration']
+                        ), cur_song.requester.id, self.guild.id
+                    ),
+                    [u.id for u in self.voice_client.channel.members]
+                )
 
     async def cleanup_coro(self, interval: int):
         while True:

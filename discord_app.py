@@ -6,6 +6,7 @@ from config import config
 from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState
 
 import global_state
+from db_controller import database
 from discord_server import Server
 from forwarders import forward_message_to_server, forward_voice_state_to_server
 
@@ -61,6 +62,10 @@ async def setup():
 
         for g in main_client.guilds:
             await register_server(g)
+            with database:
+                database.register_users([(x.id, x.name) for x in g.members])
+                database.register_server(g.id, g.name, g.owner.id)
+                database.register_memberships(g.id, [m.id for m in g.members])
 
         for s in global_state.guild_server_map.values():
             s.register_commands(discord_server_defaults.get_defaults(prefix='+'))

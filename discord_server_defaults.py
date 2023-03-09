@@ -1,5 +1,4 @@
 import random
-from copy import copy
 from datetime import datetime
 from typing import Optional
 
@@ -56,11 +55,13 @@ async def play_playlist_command(msg: Message, srv: Server, yt_id: str = None):
         'extract_flat': True,
         'playlist_items': '1:10'
     }).extract_info(
-        msg.content.split(' ')[-1]
+        msg.content.split(' ')[-1],
+        download=False
     )
 
     if yt_query['_type'] != 'playlist':
         print(f"Error: yt-dlp extraction using \"{msg.content.split(' ')[-1]}\" was not of playlist type")
+        await msg.channel.send("```\nCannot access this playlist!\n```")
         return
 
     print(f"Info: Queuing playlist \"{yt_query['title']}\" requested by {msg.author.name}#{msg.author.discriminator} using \"{msg.content.split(' ')[-1]}\"")

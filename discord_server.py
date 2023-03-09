@@ -2,6 +2,8 @@ import re
 from typing import Callable, Any, Awaitable, Iterable
 
 from discord import Guild, Message, VoiceState
+
+from db_controller import database
 from discord_server_commands import Command
 from music_player import MusicPlayer
 
@@ -23,6 +25,8 @@ class Server:
             for c in self.commands:
                 match = re.fullmatch(c.regex, message.content)
                 if match:
+                    with database:
+                        database.log_command(message.content, message.author.id, self.disc_guild.id)
                     await c.delegate(message, self, *[x for x in match.groups() if x is not None])
                     return
         except Exception as exc:
