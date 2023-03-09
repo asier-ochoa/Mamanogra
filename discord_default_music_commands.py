@@ -1,35 +1,14 @@
 import random
-from datetime import datetime
 from typing import Optional
 
-from discord import Message, HTTPException, Forbidden
+from discord import Message
 from yt_dlp import YoutubeDL
 
 import utils
-from config import config
-import global_state
 
 from discord_server import Server
 from discord_server_commands import Command
 from song_generators import generate_youtube_song, generate_url_song
-
-
-async def info_command(msg: Message, srv: Server):
-    try:
-        await msg.channel.send(
-            content="\n".join((
-                "```",
-                f"Mamanogra v0.13 - {config.discord.info_message}",
-                "Made by Smug Twingo",
-                f"Uptime: {str(datetime.now() - global_state.start_time).split('.')[0]}"
-                "```"
-            ))
-        )
-    # Make error messages more detailed
-    except Forbidden as exc:
-        print(f"Error: Insufficient permissions. Details: {exc.response}")
-    except HTTPException as exc:
-        print(f"Error: HTTPException while trying to write info message. Details: {exc.response}")
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
@@ -148,9 +127,8 @@ async def play_file_command(msg: Message, srv: Server, url: Optional[str] = None
     await srv.music_player.play(msg.author, await generate_url_song(i_url))
 
 
-def get_defaults(prefix: str):
+def get_music_defaults(prefix: str):
     commands = [
-        (fr"\{prefix}(?:info$|i$)", info_command),
         (fr"\{prefix}(?:pe |play embed |pe$|play embed$)(.+\.(?:mp3$|ogg$|wav$|mp4$))?", play_file_command),
         (fr"\{prefix}(?:p |play )https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
         (fr"\{prefix}(?:p |play )([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),

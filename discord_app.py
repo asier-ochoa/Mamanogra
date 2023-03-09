@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Union
 
-import discord_server_defaults
+import discord_default_global_commands
+import discord_default_music_commands
 from config import config
 from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState
 
@@ -68,7 +69,8 @@ async def setup():
                 database.register_memberships(g.id, [m.id for m in g.members])
 
         for s in global_state.guild_server_map.values():
-            s.register_commands(discord_server_defaults.get_defaults(prefix='+'))
+            s.register_commands(discord_default_global_commands.get_global_defaults(prefix='+'))
+            s.register_commands(discord_default_music_commands.get_music_defaults(prefix='+'))
 
         print("Info: Discord bot initialized")
 
@@ -80,9 +82,15 @@ async def register_server(guild: Guild):
     async with global_state.guild_server_map_lock:
         global_state.guild_server_map[guild.id] = Server(guild)
         global_state.server_membership_count += 1
+    with database:
+        database.register_server(guild.id, guild.name, guild.owner.id)
+        database.register_users([(x.id, x.name) for x in guild.members])
+        database.register_memberships(guild.id, [m.id for m in guild.members])
+    print(f"Info: Bot joined guild \"{guild.name}\"")
 
 
 async def remove_server(guild: Guild):
     async with global_state.guild_server_map_lock:
         global_state.guild_server_map.pop(guild.id)
         global_state.server_membership_count -= 1
+    print(f"Info: Bot was removed from guild \"{guild.name}\"")
