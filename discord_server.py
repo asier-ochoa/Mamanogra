@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 from typing import Callable, Any, Awaitable, Iterable
 
 from discord import Guild, Message, VoiceState, User
@@ -50,11 +51,31 @@ class Server:
         key = os.urandom(128)
         token = "".join(hex(x).removeprefix('0x') for x in os.urandom(16))
         with database:
-            if not database.register_new_web_key(user.id, key, token):
-                if not database.regen_web_key(user.id, key, token):
-                    await user.send(f"Your URL is still active, if you wish to regen your URL use command `+wr` in a server")
-        await user.send(f"Your URL:\n```\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\n```Expires in 5 minutes")
-        print(f"Info: Generated token ({token}) and key for {user.name}#{user.discriminator} in {self.disc_guild.name}")
+            status = database.get_web_keys_status(user.id)
+            # If no key or token, generate a new one
+            if status is None:
+                database.register_new_web_key(user.id, key, token)
+                await user.send(f"Your URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                print(f"Info: Generated token ({token}) and key for {user.name}#{user.discriminator} in {self.disc_guild.name}")
+                return
+            # If token but no key, resend
+            if status.request_token_expiration_date > datetime.now() and not status.validated:
+                await user.send(f"Resending URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{status.request_token}\nExpires soon")
+                print(f"Info: Resent token url for {user.name}#{user.discriminator} in {self.disc_guild.name}")
+                return
+            # If token expired and still no key, regenerate
+            if status.request_token_expiration_date < datetime.now() and not status.validated:
+                database.regenerate_token(status.id, token)
+                await user.send(f"Regenerating URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                print(f"Info: Regenerated token ({token}) for {user.name}#{user.discriminator} in {self.disc_guild.name}")
+                return
+            # Has key, regenerate
+            if status.key_expiration_date < datetime.now() or status.validated:
+                database.regenerate_key(status.id, key)
+                database.regenerate_token(status.id, token)
+                await user.send(f"Your URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                print(f"Info: Regenerated token ({token}) and key for {user.name}#{user.discriminator} in {self.disc_guild.name}")
+                return
 
 
 def register_command(server: Server, regex: str, delegate: Callable[[Message, Server], Awaitable[Any]]):
