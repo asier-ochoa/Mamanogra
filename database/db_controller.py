@@ -1,4 +1,6 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Optional
+
+from pydantic import BaseModel
 
 import database.schema as schema
 from music.player import Song
@@ -6,6 +8,15 @@ import sqlite3
 from os.path import isfile
 from datetime import datetime, timedelta
 from os import remove
+
+
+class WebKeyStatus(BaseModel):
+    id: int
+    key_expiration_date: datetime
+    request_token: str
+    request_token_expiration_date: datetime
+    validated: bool
+
 
 class DB:
     db_file_name = 'savedata.db'
@@ -232,7 +243,7 @@ class DB:
             """, user_ids
         )
 
-    def register_new_web_key(self, user_id: int, key: bytes, token: str) -> bool:
+    def register_new_web_key(self, user_id: int, key: bytes, token: str):
         """
         Returns false if no data was inserted
         """
@@ -245,15 +256,6 @@ class DB:
             """, [user_id]
         ).fetchone()[0]
 
-        key_search = self.cur.execute(
-            """
-            SELECT key_validated from webui_session_keys
-            WHERE discord_user = ? limit 1
-            """, [user_fk]
-        ).fetchone()
-        if key_search is not None:
-            return False
-
         token_exp_date = datetime.now() + timedelta(minutes=5)
         key_exp_date = datetime.now() + timedelta(days=90)
         self.cur.execute(
@@ -263,6 +265,59 @@ class DB:
             """, (user_fk, key, key_exp_date, token, token_exp_date, 0)
         )
         return True
+
+    def get_web_keys_status(self, user_id: int) -> Optional[WebKeyStatus]:
+        assert self.con is not None and self.cur is not None
+
+        user_fk = self.cur.execute(
+            """
+            SELECT id from users
+            where discord_id = ? limit 1
+            """, [user_id]
+        ).fetchone()[0]
+
+        status = self.cur.execute(
+            """
+            SELECT id, key_expiration_date, request_token, request_token_expiration_date, key_validated from webui_session_keys
+            WHERE discord_user = ? limit 1
+            """, [user_fk]
+        ).fetchone()
+        if status is None:
+            return None
+        return WebKeyStatus(
+            id=status[0],
+            key_expiration_date=status[1],
+            request_token=status[2],
+            request_token_expiration_date=status[3],
+            validated=status[4]
+        )
+
+    def regenerate_token(self, db_key_id: int, token: int):
+        assert self.con is not None and self.cur is not None
+
+        token_exp_date = datetime.now() + timedelta(minutes=5)
+        self.cur.execute(
+            """
+            UPDATE webui_session_keys SET 
+            request_token = ?,
+            request_token_expiration_date = ?
+            WHERE id = ?
+            """, (token, token_exp_date, db_key_id)
+        )
+
+    def regenerate_key(self, db_key_id: int, key: bytes):
+        assert self.con is not None and self.cur is not None
+
+        key_exp_date = datetime.now() + timedelta(days=90)
+        self.cur.execute(
+            """
+            UPDATE webui_session_keys SET
+            key = ?,
+            key_validated = ?,
+            key_expiration_date = ? 
+            WHERE id = ?
+            """, (key, 0, key_exp_date, db_key_id)
+        )
 
 
 database = DB()
