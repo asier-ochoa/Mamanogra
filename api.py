@@ -1,19 +1,27 @@
-import asyncio
+from datetime import datetime
 
+from flask import Response
 from flask.blueprints import Blueprint
-from flask import request
-import music.player as player
-from music.commands import controllers
+
+from db_controller import database
 
 bp = Blueprint('bp', __name__)
 
 
-@bp.post("/play")
-def do():
-    body = request.get_json(force=True)
-    ctrl = [x for x in controllers if x[1].name == "Punishment Zone"][0]
-    caller = [x for x in ctrl[1].members if x.name == "Smug Twingo"][0]
-    ctrl = ctrl[0]
-    asyncio.ensure_future(ctrl.play_url(body['url'], caller), loop=ctrl.bot.loop)
-    print("XD")
-    return 'Done'
+@bp.get('/keygen/<token>')
+def validate_key(token: str):
+    with database:
+        status = database.get_web_key_with_token(token)
+
+    if status is None:
+        return "Couldn't find token", 404
+    if status.validated:
+        return "You already have a key, forwarding to dashboard"
+    if status.request_token_expiration_date < datetime.now():
+        return "URL is expired, please generate a new one using \"+w\"", 403
+
+    with database:
+        database.validate_key(status.id)
+    resp = Response("Key generated and saved in your cookies, forwarding to dashboard")
+    resp.set_cookie(key='key', value=status.key)
+    return resp
