@@ -7,7 +7,7 @@ from music.player import Song
 import sqlite3
 from os.path import isfile
 from datetime import datetime, timedelta
-from os import remove
+from threading import Lock
 
 
 class WebKeyStatus(BaseModel):
@@ -16,12 +16,14 @@ class WebKeyStatus(BaseModel):
     request_token: str
     request_token_expiration_date: datetime
     validated: bool
+    key: Optional[bytes]
 
 
 class DB:
     db_file_name = 'savedata.db'
 
     def __enter__(self):
+        self.lock.acquire()
         self.con = sqlite3.connect(self.db_file_name)
         self.cur = self.con.cursor()
         return self
@@ -31,10 +33,12 @@ class DB:
         self.con.close()
         self.con = None
         self.cur = None
+        self.lock.release()
 
     def __init__(self):
         self.con: Union[sqlite3.Connection, None] = None
         self.cur: Union[sqlite3.Cursor, None] = None
+        self.lock = Lock()
         if not isfile(self.db_file_name):
             self.create_database()
 
@@ -317,6 +321,37 @@ class DB:
             key_expiration_date = ? 
             WHERE id = ?
             """, (key, 0, key_exp_date, db_key_id)
+        )
+
+    def get_web_key_with_token(self, token: str):
+        assert self.con is not None and self.cur is not None
+
+        status = self.cur.execute(
+            """
+            SELECT id, key_expiration_date, request_token, request_token_expiration_date, key_validated, key from webui_session_keys
+            WHERE request_token = ? limit 1
+            """, [token]
+        ).fetchone()
+        if status is None:
+            return None
+        return WebKeyStatus(
+            id=status[0],
+            key_expiration_date=status[1],
+            request_token=status[2],
+            request_token_expiration_date=status[3],
+            validated=status[4],
+            key=status[5]
+        )
+
+    def validate_key(self, db_id: int):
+        assert self.con is not None and self.cur is not None
+
+        self.cur.execute(
+            """
+            UPDATE webui_session_keys SET
+            key_validated = ?
+            WHERE id = ?
+            """, (1, db_id)
         )
 
 
