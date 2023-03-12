@@ -16,7 +16,7 @@ class WebKeyStatus(BaseModel):
     request_token: str
     request_token_expiration_date: datetime
     validated: bool
-    key: Optional[bytes]
+    key: Optional[str]
 
 
 class DB:
@@ -247,7 +247,7 @@ class DB:
             """, user_ids
         )
 
-    def register_new_web_key(self, user_id: int, key: bytes, token: str):
+    def register_new_web_key(self, user_id: int, key: str, token: str):
         """
         Returns false if no data was inserted
         """
@@ -309,7 +309,7 @@ class DB:
             """, (token, token_exp_date, db_key_id)
         )
 
-    def regenerate_key(self, db_key_id: int, key: bytes):
+    def regenerate_key(self, db_key_id: int, key: str):
         assert self.con is not None and self.cur is not None
 
         key_exp_date = datetime.now() + timedelta(days=90)
