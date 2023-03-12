@@ -48,7 +48,7 @@ class Server:
         self.commands.extend(command)
 
     async def generate_web_key(self, user: User):
-        key = os.urandom(128)
+        key = "".join(hex(x).removeprefix('0x') for x in os.urandom(128))
         token = "".join(hex(x).removeprefix('0x') for x in os.urandom(16))
         with database:
             status = database.get_web_keys_status(user.id)

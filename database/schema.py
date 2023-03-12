@@ -74,7 +74,7 @@ def generate() -> str:
     CREATE TABLE "webui_session_keys" (
         "id" INTEGER not null UNIQUE,
         "discord_user" INTEGER not null UNIQUE,
-        "key" BLOB not null,
+        "key" TEXT not null,
         "key_expiration_date" TEXT,
         "request_token" TEXT not null,
         "request_token_expiration_date" TEXT not null,
