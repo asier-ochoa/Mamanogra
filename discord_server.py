@@ -55,25 +55,25 @@ class Server:
             # If no key or token, generate a new one
             if status is None:
                 database.register_new_web_key(user.id, key, token)
-                await user.send(f"Your URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                await user.send(f"Your URL:\n{config.server.domain}:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
                 print(f"Info: Generated token ({token}) and key for {user.name}#{user.discriminator} in {self.disc_guild.name}")
                 return
             # If token but no key, resend
             if status.request_token_expiration_date > datetime.now() and not status.validated:
-                await user.send(f"Resending URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{status.request_token}\nExpires soon")
+                await user.send(f"Resending URL:\n{config.server.domain}:{config.server.port}/keygen/{status.request_token}\nExpires soon")
                 print(f"Info: Resent token url for {user.name}#{user.discriminator} in {self.disc_guild.name}")
                 return
             # If token expired and still no key, regenerate
             if status.request_token_expiration_date < datetime.now() and not status.validated:
                 database.regenerate_token(status.id, token)
-                await user.send(f"Regenerating URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                await user.send(f"Regenerating URL:\n{config.server.domain}:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
                 print(f"Info: Regenerated token ({token}) for {user.name}#{user.discriminator} in {self.disc_guild.name}")
                 return
             # Has key, regenerate
             if status.key_expiration_date < datetime.now() or status.validated:
                 database.regenerate_key(status.id, key)
                 database.regenerate_token(status.id, token)
-                await user.send(f"Your URL:\na.smugtwingo.xyz:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
+                await user.send(f"Your URL:\n{config.server.domain}:{config.server.port}/keygen/{token}\nExpires in 5 minutes")
                 print(f"Info: Regenerated token ({token}) and key for {user.name}#{user.discriminator} in {self.disc_guild.name}")
                 return
 

@@ -12,6 +12,7 @@ class DiscordModel(BaseModel):
 
 class ServerModel(BaseModel):
     port: int
+    domain: str
 
 
 class Configuration(BaseModel):
@@ -29,7 +30,8 @@ if not os.path.exists("config.json"):
                 info_message="",
             ),
             server=ServerModel(
-                port=5000
+                port=5000,
+                domain="localhost"
             )
         ).dict(), f, indent=4)
         print("Warning: Generated missing config.json, please fill it out and relaunch the program")
