@@ -226,6 +226,20 @@ class DB:
             , [server_fk, amount]
         )
 
+    def get_all_user_servers(self, usr_db_id: int) -> list[int]:
+        assert self.con is not None and self.cur is not None
+
+        return [
+            int(x[0]) for x in
+            self.cur.execute(
+                """
+                SELECT s.discord_id from user_membership
+                join servers s on s.id = user_membership.server_id
+                where user_id = ?
+                """, [usr_db_id]
+            ).fetchall()
+        ]
+
     def register_song_listeners(self, db_song_id: int, user_ids: tuple[int]):
         assert self.con is not None and self.cur is not None
 
@@ -353,6 +367,35 @@ class DB:
             WHERE id = ?
             """, (1, db_id)
         )
+
+    def auth_key(self, key: str) -> tuple[bool, Optional[WebKeyStatus]]:
+        """
+        Used to authenticate with key, checks for validity
+        """
+        assert self.con is not None and self.cur is not None
+
+        search = self.cur.execute(
+            """
+            SELECT id, key_expiration_date, request_token, request_token_expiration_date, key_validated from webui_session_keys
+            where key = ? limit 1
+            """, [key]
+        ).fetchone()
+
+        if search is None:
+            return False, None
+        if not bool(search[4]):
+            return False, None
+        if datetime.fromisoformat(search[3]) < datetime.now():
+            return False, None
+        return True, WebKeyStatus(
+            id=search[0],
+            key_expiration_date=search[1],
+            request_token=search[2],
+            request_token_expiration_date=search[3],
+            validated=search[4],
+            key=None
+        )
+
 
 
 database = DB()
