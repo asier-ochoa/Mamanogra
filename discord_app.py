@@ -19,10 +19,12 @@ async def event_setup(client: Client):
     async def on_message(message: Message):
         await forward_message_to_server(message)  # Function to move execution over to related server
 
-    # @client.event
-    # async def on_member_join(member: Member):
-    #     await forward_member_to_server()
-    #
+    @client.event
+    async def on_member_join(member: Member):
+        with database:
+            database.register_users([(member.id, member.name)])
+            database.register_memberships(member.guild.id, [member.id])
+
     # @client.event
     # async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):
     #     pass forward_reaction_to_server()

@@ -111,11 +111,11 @@ def play_song():
         ).fetchone()[0]
 
     body = PlaySongModel(**request.get_json())
-    server = global_state.guild_server_map[body.guild_id]
+    server = global_state.guild_server_map.get(body.guild_id)
     disc_usr: Member = discord.utils.get(server.disc_guild. members, id=int(disc_id))
     voice_channel: VoiceChannel = discord.utils.get(server.disc_guild.voice_channels, id=body.voice_channel_id)
 
-    if None in (disc_usr, voice_channel):
+    if None in (disc_usr, voice_channel, server):
         return "Incorrect guild or voice channel id", 400
 
     # Launch coroutine so that the api call is non-blocking
@@ -130,3 +130,8 @@ def play_song():
     )
 
     return 'OK'
+
+
+@bp.get('/api/queue/<guild_id>')
+def get_queue(guild_id: str):
+    user: WebKeyStatus = g.user

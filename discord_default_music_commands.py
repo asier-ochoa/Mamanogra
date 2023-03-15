@@ -1,10 +1,11 @@
 import random
-from typing import Optional
+from typing import Optional, Literal
 
 from discord import Message
 from yt_dlp import YoutubeDL
 
 import utils
+from db_controller import database
 
 from discord_server import Server
 from discord_server_commands import Command
@@ -127,6 +128,30 @@ async def play_file_command(msg: Message, srv: Server, url: Optional[str] = None
     await srv.music_player.play(msg.author, await generate_url_song(i_url))
 
 
+async def top_command(msg: Message, srv: Server, q_type: Optional[Literal['global', 'server']] = None):
+    with database:
+        if q_type is None:
+            scope = 'Local'
+            author = msg.author.display_name
+            top_songs = [x for x in database.get_top_songs_local(msg.author.id, msg.guild.id)]
+        elif q_type == 'global':
+            scope = 'Global'
+            author = msg.author.display_name
+            top_songs = [x for x in database.get_top_songs_global(msg.author.id)]
+        elif q_type == 'server':
+            scope = 'Server'
+            author = msg.guild.name
+            top_songs = [x for x in database.get_top_songs_server(msg.guild.id)]
+
+    message = f'\n**{scope} top for {author}**\n```\n'
+    i = 0
+    for s in top_songs:
+        message += f'{i + 1}. {s[0]}, {s[1]}, {s[2]}\n'
+        i += 1
+    message += '```'
+    await msg.channel.send(content=message)
+
+
 def get_music_defaults(prefix: str):
     commands = [
         (fr"\{prefix}(?:pe |play embed |pe$|play embed$)(.+\.(?:mp3$|ogg$|wav$|mp4$))?", play_file_command),
@@ -136,6 +161,7 @@ def get_music_defaults(prefix: str):
         (fr"\{prefix}(?:s |skip |s$|skip$)(?:(?!0)(?!-0)(-?\d+))?", skip_command),
         (fr"\{prefix}(?:sh$|shuffle$)", shuffle_command),
         (fr"\{prefix}(?:q$|queue$)", queue_command),
-        (fr"\{prefix}seek (\d?\d:\d\d:\d\d$|\d?\d:\d\d$)", seek_command)
+        (fr"\{prefix}seek (\d?\d:\d\d:\d\d$|\d?\d:\d\d$)", seek_command),
+        (fr"\{prefix}top(?:$| (global$|server$))", top_command)
     ]
     return [Command(*x) for x in commands]
