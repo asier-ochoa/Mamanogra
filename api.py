@@ -115,18 +115,18 @@ def play_song():
     disc_usr: Member = discord.utils.get(server.disc_guild. members, id=int(disc_id))
     voice_channel: VoiceChannel = discord.utils.get(server.disc_guild.voice_channels, id=body.voice_channel_id)
 
-    # Horrible way of executing a coroutine in blocking code
-    yt_func_task = global_state.discord_client.loop.create_task(generate_youtube_song(body.song))
-    while not yt_func_task.done():
-        time.sleep(0.25)
-    yt_func = yt_func_task.result()
+    if None in (disc_usr, voice_channel):
+        return "Incorrect guild or voice channel id", 400
 
-    global_state.discord_client.loop.create_task(
-        server.music_player.play(
+    # Launch coroutine so that the api call is non-blocking
+    async def play_coro_wrapper():
+        await server.music_player.play(
             disc_usr,
-            yt_func,
+            await generate_youtube_song(body.song),
             voice_channel
         )
+    global_state.discord_client.loop.create_task(
+        play_coro_wrapper()
     )
 
     return 'OK'
