@@ -109,9 +109,9 @@ class MusicPlayer:
 
         return ret
 
-    async def play(self, caller: Union[Member, User], source_func: Optional[Callable[[], FFmpegPCMAudio]] = None):
+    async def play(self, caller: Union[Member, User], source_func: Optional[Callable[[], FFmpegPCMAudio]] = None, voice_channel: Optional[VoiceChannel] = None):
         # Connect to a voice channel if not connected
-        await self.connect_to_channel(caller.voice.channel)
+        await self.connect_to_channel(caller.voice.channel if voice_channel is None else voice_channel)
 
         async with self.voice_client_lock:
             # Append a song if passed as argument
