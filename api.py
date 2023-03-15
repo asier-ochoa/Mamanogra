@@ -1,13 +1,24 @@
+import time
 from datetime import datetime, timedelta
 
+from discord import Member, VoiceChannel
 from flask import Response, request, g
 from flask.blueprints import Blueprint
+from pydantic import ValidationError
 
 import global_state
+from api_models import PlaySongModel
 from config import config
+import discord
 from db_controller import database, WebKeyStatus
+from song_generators import generate_youtube_song
 
 bp = Blueprint('bp', __name__)
+
+
+@bp.errorhandler(ValidationError)
+def handle_validation_error(err: ValidationError):
+    return err.errors(), 400
 
 
 @bp.before_request
@@ -49,8 +60,6 @@ def get_guilds():
     with database:
         guild_ids = database.get_all_user_servers(user.id)
 
-    print([x.id for x in global_state.discord_client.guilds])
-
     guilds = [
         {
             "name": guild.name,
@@ -62,3 +71,62 @@ def get_guilds():
     ]
 
     return guilds
+
+
+@bp.get('/api/guilds/<guild_id>')
+def get_guild_detail(guild_id: str):
+    user: WebKeyStatus = g.user
+    with database:
+        guild_ids = database.get_all_user_servers(user.id)
+    if int(guild_id) not in guild_ids:
+        return "Current user is not a member", 403
+
+    return {
+        "voice_channels": [
+            {
+                "name": x.name,
+                "id": x.id
+            } for x in
+            global_state.guild_server_map[int(guild_id)].disc_guild.voice_channels
+        ],
+        "text_channels": [
+            {
+                "name": x.name,
+                "id": x.id
+            } for x in
+            global_state.guild_server_map[int(guild_id)].disc_guild.text_channels
+        ]
+    }
+
+
+@bp.post('/api/playUrl')
+def play_song():
+    user: WebKeyStatus = g.user
+    with database:
+        disc_id = database.cur.execute(
+            """
+            SELECT discord_id FROM users
+            where id = ?
+            """, [user.id]
+        ).fetchone()[0]
+
+    body = PlaySongModel(**request.get_json())
+    server = global_state.guild_server_map[body.guild_id]
+    disc_usr: Member = discord.utils.get(server.disc_guild. members, id=int(disc_id))
+    voice_channel: VoiceChannel = discord.utils.get(server.disc_guild.voice_channels, id=body.voice_channel_id)
+
+    # Horrible way of executing a coroutine in blocking code
+    yt_func_task = global_state.discord_client.loop.create_task(generate_youtube_song(body.song))
+    while not yt_func_task.done():
+        time.sleep(0.25)
+    yt_func = yt_func_task.result()
+
+    global_state.discord_client.loop.create_task(
+        server.music_player.play(
+            disc_usr,
+            yt_func,
+            voice_channel
+        )
+    )
+
+    return 'OK'

@@ -376,7 +376,7 @@ class DB:
 
         search = self.cur.execute(
             """
-            SELECT id, key_expiration_date, request_token, request_token_expiration_date, key_validated from webui_session_keys
+            SELECT discord_user, key_expiration_date, request_token, request_token_expiration_date, key_validated from webui_session_keys
             where key = ? limit 1
             """, [key]
         ).fetchone()
@@ -385,7 +385,7 @@ class DB:
             return False, None
         if not bool(search[4]):
             return False, None
-        if datetime.fromisoformat(search[3]) < datetime.now():
+        if datetime.fromisoformat(search[1]) < datetime.now():
             return False, None
         return True, WebKeyStatus(
             id=search[0],
@@ -395,7 +395,6 @@ class DB:
             validated=search[4],
             key=None
         )
-
 
 
 database = DB()
