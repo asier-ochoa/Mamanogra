@@ -59,4 +59,29 @@ def generate() -> str:
     );
     """
 
+    song_listener_schema = """
+    CREATE TABLE "song_listener" (
+        "id" INTEGER not null UNIQUE,
+        "listener_user" INTEGER not null,
+        "song" INTEGER NOT NULL,
+        PRIMARY KEY("id" AUTOINCREMENT),
+        FOREIGN KEY("listener_user") REFERENCES "users"("id"),
+        FOREIGN KEY("song") REFERENCES "songs"("id")
+    );
+    """
+
+    webui_session_keys = """
+    CREATE TABLE "webui_session_keys" (
+        "id" INTEGER not null UNIQUE,
+        "discord_user" INTEGER not null UNIQUE,
+        "key" TEXT not null,
+        "key_expiration_date" TEXT,
+        "request_token" TEXT not null,
+        "request_token_expiration_date" TEXT not null,
+        "key_validated" INTEGER default 0,
+        PRIMARY KEY ("id" AUTOINCREMENT),
+        FOREIGN KEY ("discord_user") REFERENCES "users"("id")
+    );
+    """
+
     return "".join([v for v in locals().values()])
