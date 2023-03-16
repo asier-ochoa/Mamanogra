@@ -1,1 +1,0 @@
-SERVER_FOLDER = "serverdata"
