@@ -17,7 +17,7 @@ async def generate_youtube_song(yt_id: str, e_seek: Optional[int] = None) -> Cal
         outer_yt_query = outer_yt_query['entries'][0]
     e_title, e_duration, e_thumbnail = outer_yt_query.get('title'), outer_yt_query.get('duration'), outer_yt_query.get('thumbnail')
 
-    def youtube_song(i_yt_id=yt_id, seek=e_seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail):  # Default params for early binding
+    def youtube_song(i_yt_id=yt_id, seek=e_seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail, db_youtube_id=outer_yt_query.get('id')):  # Default params for early binding
         ffmpeg_options = deepcopy(FFMPEG_YT_OPTIONS)
         # Add seeking if requested
         if seek is not None:

@@ -151,7 +151,7 @@ def get_queue(guild_id: str):
                     "name": x.requester.name,
                     "id": x.requester.id
                 },
-                "time_played": x.time_played.isoformat(),
+                "time_played": x.time_played.isoformat() if x.time_played is not None else None,
                 "time_requested": x.time_requested.isoformat()
             } for x in srv.music_player.queue
         ]
