@@ -158,7 +158,7 @@ class MusicPlayer:
                 database.register_song_listeners(
                     database.register_song(
                         MockSong(
-                            args['i_yt_id'],
+                            args['db_youtube_id'],
                             args['title'],
                             args['duration']
                         ), cur_song.requester.id, self.guild.id
