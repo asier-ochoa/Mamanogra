@@ -4,7 +4,7 @@ from typing import Union
 import discord_default_global_commands
 import discord_default_music_commands
 from config import config
-from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState
+from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState, RawMemberRemoveEvent
 
 import global_state
 from db_controller import database
@@ -24,6 +24,13 @@ async def event_setup(client: Client):
         with database:
             database.register_users([(member.id, member.name)])
             database.register_memberships(member.guild.id, [member.id])
+        print(f"Info: {member.name}#{member.discriminator} joined guild \'{member.guild.name}\'")
+
+    @client.event
+    async def on_raw_member_remove(payload: RawMemberRemoveEvent):
+        with database:
+            database.remove_membership(payload.guild_id, payload.user.id)
+        print(f"Info: {payload.user.name}#{payload.user.discriminator} left guild \'{global_state.guild_server_map[payload.guild_id].disc_guild.name}\'")
 
     # @client.event
     # async def on_reaction_add(reaction: Reaction, user: Union[Member, User]):

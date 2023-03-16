@@ -109,6 +109,28 @@ class DB:
             , users_fk
         )
 
+    def remove_membership(self, server_id: int, user_id: int):
+        assert self.con is not None and self.cur is not None
+
+        server_fk = self.cur.execute(
+            """
+            SELECT id FROM servers where discord_id = ?
+            """
+            , [str(server_id)]
+        ).fetchone()[0]
+        user_fk = self.cur.execute(
+            """
+            SELECT id FROM users where discord_id in (?)
+            """, [str(user_id)]
+        ).fetchone()[0]
+
+        self.cur.execute(
+            """
+            DELETE FROM user_membership
+            where user_id = ? and server_id = ?
+            """, [user_fk, server_fk]
+        )
+
     def register_song(self, song: Song, user_discord_id: int, server_discord_id: int):
         assert self.con is not None and self.cur is not None
 
