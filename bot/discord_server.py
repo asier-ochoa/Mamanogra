@@ -7,8 +7,8 @@ from discord import Guild, Message, VoiceState, User
 
 from config import config
 from db_controller import database
-from discord_server_commands import Command
-from music_player import MusicPlayer
+from bot.discord_server_commands import Command
+from bot.music_player import MusicPlayer
 
 
 class Server:

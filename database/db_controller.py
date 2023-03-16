@@ -3,7 +3,6 @@ from typing import Iterable, Union, Optional
 from pydantic import BaseModel
 
 import database.schema as schema
-from music.player import Song
 import sqlite3
 from os.path import isfile
 from datetime import datetime, timedelta
@@ -131,7 +130,7 @@ class DB:
             """, [user_fk, server_fk]
         )
 
-    def register_song(self, song: Song, user_discord_id: int, server_discord_id: int):
+    def register_song(self, song, user_discord_id: int, server_discord_id: int):
         assert self.con is not None and self.cur is not None
 
         user_fk, server_fk = self.cur.execute(

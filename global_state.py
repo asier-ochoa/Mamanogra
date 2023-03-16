@@ -6,7 +6,7 @@ from typing import Optional
 from discord import Client
 import asyncio
 
-from discord_server import Server
+from bot.discord_server import Server
 
 guild_server_map_lock = asyncio.Lock()
 guild_server_map: dict[int, Server] = {}

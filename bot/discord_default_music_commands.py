@@ -7,9 +7,9 @@ from yt_dlp import YoutubeDL
 import utils
 from db_controller import database
 
-from discord_server import Server
-from discord_server_commands import Command
-from song_generators import generate_youtube_song, generate_url_song
+from bot.discord_server import Server
+from bot.discord_server_commands import Command
+from bot.song_generators import generate_youtube_song, generate_url_song
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):

@@ -1,15 +1,14 @@
 from datetime import datetime
-from typing import Union
 
-import discord_default_global_commands
-import discord_default_music_commands
+import bot.discord_default_global_commands as discord_default_global_commands
+import bot.discord_default_music_commands as discord_default_music_commands
 from config import config
-from discord import Client, Intents, Message, Guild, Member, Reaction, User, VoiceState, RawMemberRemoveEvent
+from discord import Client, Intents, Message, Guild, Member, VoiceState, RawMemberRemoveEvent
 
 import global_state
-from db_controller import database
-from discord_server import Server
-from forwarders import forward_message_to_server, forward_voice_state_to_server
+from database.db_controller import database
+from bot.discord_server import Server
+from bot.forwarders import forward_message_to_server, forward_voice_state_to_server
 
 
 async def event_setup(client: Client):
