@@ -7,6 +7,7 @@ from flask.blueprints import Blueprint
 from pydantic import ValidationError
 
 import global_state
+import utils
 from api_models import PlaySongModel
 from config import config
 import discord
@@ -135,3 +136,23 @@ def play_song():
 @bp.get('/api/queue/<guild_id>')
 def get_queue(guild_id: str):
     user: WebKeyStatus = g.user
+    with database:
+        guild_ids = database.get_all_user_servers(user.id)
+    if int(guild_id) not in guild_ids:
+        return "Current user is not a member", 403
+
+    srv = global_state.guild_server_map[int(guild_id)]
+    return {
+        "current_index": srv.music_player.current_index,
+        "queue": [
+            {
+                "song_details": utils.get_function_default_args(x.source_func),
+                "requester": {
+                    "name": x.requester.name,
+                    "id": x.requester.id
+                },
+                "time_played": x.time_played.isoformat(),
+                "time_requested": x.time_requested.isoformat()
+            } for x in srv.music_player.queue
+        ]
+    }
