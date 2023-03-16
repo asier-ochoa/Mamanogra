@@ -4,8 +4,8 @@ from discord import Message, Forbidden, HTTPException
 
 import global_state
 from config import config
-from discord_server import Server
-from discord_server_commands import Command
+from bot.discord_server import Server
+from bot.discord_server_commands import Command
 
 
 async def info_command(msg: Message, srv: Server):

@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta
 
 from discord import Member, VoiceChannel
@@ -9,10 +8,9 @@ from pydantic import ValidationError
 import global_state
 import utils
 from api_models import PlaySongModel
-from config import config
 import discord
 from db_controller import database, WebKeyStatus
-from song_generators import generate_youtube_song
+from bot.song_generators import generate_youtube_song
 
 bp = Blueprint('bp', __name__)
 

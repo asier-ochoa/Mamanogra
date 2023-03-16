@@ -1,6 +1,6 @@
 from discord import Message, Member, VoiceState
 import global_state
-from discord_server import Server
+from bot.discord_server import Server
 
 
 async def forward_message_to_server(message: Message):

@@ -1,4 +1,4 @@
-import discord_app
+from bot import discord_app
 from config import config
 
 from flask import Flask
