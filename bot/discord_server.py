@@ -6,7 +6,7 @@ from typing import Callable, Any, Awaitable, Iterable
 from discord import Guild, Message, VoiceState, User
 
 from config import config
-from db_controller import database
+from database.db_controller import database
 from bot.discord_server_commands import Command
 from bot.music_player import MusicPlayer
 
