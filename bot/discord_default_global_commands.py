@@ -13,7 +13,7 @@ async def info_command(msg: Message, srv: Server):
         await msg.channel.send(
             content="\n".join((
                 "```",
-                f"Mamanogra v0.13 - {config.discord.info_message}",
+                f"Mamanogra v0.2 - {config.discord.info_message}",
                 "Made by Smug Twingo",
                 f"Uptime: {str(datetime.now() - global_state.start_time).split('.')[0]}"
                 "```"
