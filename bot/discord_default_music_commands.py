@@ -5,7 +5,7 @@ from discord import Message
 from yt_dlp import YoutubeDL
 
 import utils
-from db_controller import database
+from database.db_controller import database
 
 from bot.discord_server import Server
 from bot.discord_server_commands import Command

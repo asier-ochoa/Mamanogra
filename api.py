@@ -9,7 +9,7 @@ import global_state
 import utils
 from api_models import PlaySongModel
 import discord
-from db_controller import database, WebKeyStatus
+from database.db_controller import database, WebKeyStatus
 from bot.song_generators import generate_youtube_song
 
 bp = Blueprint('bp', __name__)
