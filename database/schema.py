@@ -84,4 +84,14 @@ def generate() -> str:
     );
     """
 
+    discord_uptime_schema = """
+    CREATE TABLE "discord_bot_uptime" (
+        "id" INTEGER not null UNIQUE,
+        "timestamp" TEXT not null,
+        "discord_connected" INTEGER not null,
+        "voice_connects" INTEGER,
+        "songs_play" INTEGER
+    )
+    """
+
     return "".join([v for v in locals().values()])

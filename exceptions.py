@@ -1,2 +1,0 @@
-class InvalidArgumentFormat(Exception):
-    pass

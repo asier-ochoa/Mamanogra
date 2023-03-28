@@ -1,5 +1,6 @@
 import json
 import os.path
+from datetime import timedelta
 from json import JSONDecodeError
 
 from pydantic import BaseModel, ValidationError
@@ -8,6 +9,7 @@ from pydantic import BaseModel, ValidationError
 class DiscordModel(BaseModel):
     token: str
     info_message: str
+    is_alive_interval: timedelta
 
 
 class ServerModel(BaseModel):
@@ -28,12 +30,13 @@ if not os.path.exists("config.json"):
             discord=DiscordModel(
                 token="",
                 info_message="",
+                is_alive_interval=timedelta(minutes=5)
             ),
             server=ServerModel(
                 port=5000,
                 domain="localhost"
             )
-        ).dict(), f, indent=4)
+        ).dict(), f, indent=4, default=str)
         print("Warning: Generated missing config.json, please fill it out and relaunch the program")
         exit(1)
 

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 
 import bot.discord_default_global_commands as discord_default_global_commands
@@ -48,6 +49,14 @@ async def event_setup(client: Client):
         await remove_server(guild)
 
 
+async def register_if_alive():
+    """
+    Coroutine task that periodically runs and registers to database the bots status
+    """
+    while True:
+        await asyncio.sleep(config.discord.is_alive_interval.seconds)
+
+
 async def setup():
     # Setup Intents
     intent = Intents.default()
@@ -63,6 +72,9 @@ async def setup():
     global_state.discord_client = main_client
 
     await event_setup(main_client)
+
+    # Set any recurring tasks
+    main_client.loop.create_task(register_if_alive())
 
     # Startup event
     @main_client.event

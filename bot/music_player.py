@@ -129,6 +129,7 @@ class MusicPlayer:
 
             print("".join([
                 f"Info: playing \"{song_args.get('title')}\" requested",
+                f" with seeking" if song_args.get('seek') is not None else "",
                 f" by {caller.name}#{caller.discriminator} in {caller.guild.name}",
                 f" {requested_ago.__str__().split('.')[0]} ago"
             ]))
