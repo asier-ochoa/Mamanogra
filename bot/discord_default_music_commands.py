@@ -17,6 +17,11 @@ async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
     await srv.music_player.play(msg.author, await generate_youtube_song(yt_id))
 
 
+async def play_sc_url_command(msg: Message, srv: Server, url: str = None):
+    print(f"Info: {msg.author.name}#{msg.author.discriminator} queued soundcloud_url \"{url}\"")
+    await srv.music_player.play(msg.author, await generate_youtube_song(url))
+
+
 async def play_query_command(msg: Message, srv: Server, query: str = None):
     queries = query.split('|')
     if len(queries) == 1:
@@ -156,6 +161,7 @@ def get_music_defaults(prefix: str):
     commands = [
         (fr"\{prefix}(?:pe |play embed |pe$|play embed$)(.+\.(?:mp3$|ogg$|wav$|mp4$))?", play_file_command),
         (fr"\{prefix}(?:p |play )https:\/\/(?:(?:www\.youtube\.com\/.*?watch\?v=([\w\d\-\_]*).*)|(?:youtu\.be\/([\w\d\-\_]+)))", play_url_command),
+        (fr"\{prefix}(?:p |play )(https:\/\/soundcloud\.com\/.+)", play_sc_url_command),
         (fr"\{prefix}(?:p |play )([^|]+(?!\| \|)(?:\|(?:[^|]+))*)", play_query_command),
         (fr"\{prefix}(?:pl |playlist )https:\/\/www\.youtube\.com\/.*?list=([\w\d]*).*", play_playlist_command),
         (fr"\{prefix}(?:s |skip |s$|skip$)(?:(?!0)(?!-0)(-?\d+))?", skip_command),

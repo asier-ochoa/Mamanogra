@@ -46,6 +46,38 @@ async def generate_youtube_song(yt_id: str, e_seek: Optional[int] = None) -> Cal
     return youtube_song
 
 
+async def generate_soundcloud_song(url: str, e_seek: Optional[int] = None) -> Callable[[], FFmpegPCMAudio]:
+    """
+    Can raise yt-dlps DownloadError
+    """
+    outer_sc_query = YoutubeDL(
+        {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
+    ).extract_info(url, download=False)
+    e_title, e_duration, e_thumbnail = outer_sc_query.get('title'), outer_sc_query.get('duration'), outer_sc_query.get('thumbnail')
+    if e_thumbnail is not None and isinstance(e_thumbnail, list):
+        list_comp_search = [x for x in e_thumbnail if x['id'] == 't500x500']
+        e_thumbnail = list_comp_search[0]['url'] if len(list_comp_search) > 0 else e_thumbnail[0]['url']
+    else:
+        e_thumbnail = None
+
+    def sc_song(i_yt_id=url, seek=e_seek, title=e_title, duration=e_duration, thumbnail=e_thumbnail):
+        ffmpeg_opts = deepcopy(FFMPEG_YT_OPTIONS)
+        if seek is not None:
+            seek_time = timedelta(seconds=seek)
+            ffmpeg_opts['before_options'] += ''.join([
+                ' -ss ',
+                f'{seek_time.seconds // 3600}:',
+                f'{seek_time.seconds // 60 % 60}:',
+                f'{seek_time.seconds % 60}'
+            ])
+
+        audio_url = YoutubeDL(
+            {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
+        ).extract_info(i_yt_id, download=False)['url']
+        return FFmpegPCMAudio(source=audio_url, **ffmpeg_opts)
+    return sc_song
+
+
 async def generate_url_song(url: str) -> Callable[[], FFmpegPCMAudio]:
     e_title = url.split('/')[-1].split('.')[0]
 
