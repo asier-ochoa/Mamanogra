@@ -119,13 +119,14 @@ class MusicPlayer:
                 self.queue.append(Song(source_func, caller))
         if not self.voice_client.is_playing():
             song = self.queue[self.current_index]
+            song_args = utils.get_function_default_args(song.source_func)
 
             self.voice_client.play(song.source_func(), after=self.finishing_callback())
             song.time_played = datetime.now()
             requested_ago = song.time_played - song.time_requested
-            await self.register_current_song_to_database()
+            if song_args.get('seek') is None:
+                await self.register_current_song_to_database()
 
-            song_args = utils.get_function_default_args(song.source_func)
             print("".join([
                 f"Info: playing \"{song_args.get('title')}\" requested",
                 f" by {caller.name}#{caller.discriminator} in {caller.guild.name}",
