@@ -73,8 +73,8 @@ async def setup():
             await register_server(g)
 
         for s in global_state.guild_server_map.values():
-            s.register_commands(discord_default_global_commands.get_global_defaults(prefix='!'))
-            s.register_commands(discord_default_music_commands.get_music_defaults(prefix='!'))
+            s.register_commands(discord_default_global_commands.get_global_defaults(prefix='+'))
+            s.register_commands(discord_default_music_commands.get_music_defaults(prefix='+'))
 
         print("Info: Discord bot initialized")
 
