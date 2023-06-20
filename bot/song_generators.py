@@ -54,6 +54,7 @@ async def generate_soundcloud_song(url: str, e_seek: Optional[int] = None) -> Ca
         {'format': 'bestaudio/best', 'quiet': True, 'noplaylist': True}
     ).extract_info(url, download=False)
     e_title, e_duration, e_thumbnail = outer_sc_query.get('title'), outer_sc_query.get('duration'), outer_sc_query.get('thumbnail')
+    e_duration = int(e_duration)
     if e_thumbnail is not None and isinstance(e_thumbnail, list):
         list_comp_search = [x for x in e_thumbnail if x['id'] == 't500x500']
         e_thumbnail = list_comp_search[0]['url'] if len(list_comp_search) > 0 else e_thumbnail[0]['url']
