@@ -9,7 +9,7 @@ from database.db_controller import database
 
 from bot.discord_server import Server
 from bot.discord_server_commands import Command
-from bot.song_generators import generate_youtube_song, generate_url_song
+from bot.song_generators import generate_youtube_song, generate_url_song, generate_soundcloud_song
 
 
 async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
@@ -19,7 +19,7 @@ async def play_url_command(msg: Message, srv: Server, yt_id: str = None):
 
 async def play_sc_url_command(msg: Message, srv: Server, url: str = None):
     print(f"Info: {msg.author.name}#{msg.author.discriminator} queued soundcloud_url \"{url}\"")
-    await srv.music_player.play(msg.author, await generate_youtube_song(url))
+    await srv.music_player.play(msg.author, await generate_soundcloud_song(url))
 
 
 async def play_query_command(msg: Message, srv: Server, query: str = None):
